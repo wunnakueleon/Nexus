@@ -73,3 +73,34 @@ export interface UserDirectoryRow {
 	status: "active" | "revoked";
 	approvedAt: Date | null;
 }
+
+// --- Platform Overview ------------------------------------------------------
+
+export interface WorldOperatorCount {
+	worldId: number;
+	worldName: string;
+	colorHex: string;
+	activeOperators: number;
+}
+
+export interface PlatformOverview {
+	// Operators
+	activeOperators: number;
+	pendingApprovals: number;
+
+	// Access codes
+	availableCodes: number;
+	usedCodes: number;
+
+	// Resource exchange
+	activeTradeRequests: number;
+
+	// Cargo logistics
+	activeShipments: number;
+
+	// Commercial marketplace
+	activeListings: number;
+
+	// Per-world breakdown
+	operatorsPerWorld: WorldOperatorCount[];
+}

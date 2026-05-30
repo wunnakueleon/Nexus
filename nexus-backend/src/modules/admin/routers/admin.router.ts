@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getApprovalHistoryList, getApprovalQueue, resolveApproval } from "../controllers/approval.controller";
 import { getAccessCodes, generateCodes, expireCode } from "../controllers/code.controller";
+import { getOverview } from "../controllers/overview.controller";
 import { getUsers, setUserStatus } from "../controllers/user.controller";
 import {
 	getPendingWorldRequests,
@@ -13,6 +14,7 @@ import {
 
 const adminRouter = Router();
 
+adminRouter.get("/overview", getOverview);
 adminRouter.get("/approvals", getApprovalQueue);
 adminRouter.patch("/approvals/:id", resolveApproval);
 adminRouter.get("/approvals/history", getApprovalHistoryList);
