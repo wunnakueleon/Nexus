@@ -33,7 +33,7 @@ const OperatorSelect: React.FC = () => {
       : role === 'Commercial Citizen'
         ? 'You'
         : `${role.split(' ')[0]} Officer`;
-    const op: OperatorState = { role, worldId: chosen.neutral ? null : worldId, name };
+    const op: OperatorState = { role, worldId: chosen.neutral ? null : worldId, name, status: 'active' };
     setOperator(op);
     navigate(chosen.basePath);
   };

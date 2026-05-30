@@ -3,12 +3,14 @@ import SignInPage from "../pages/SignInPage";
 import SignUpPage from "../pages/SignUpPage";
 import PendingApprovalPage from "../pages/PendingApprovalPage";
 import RejectedPage from "../pages/RejectedPage";
+import RevokedPage from "../pages/RevokedPage";
 
 const authRoutes: RouteObject[] = [
   { path: "signin", element: <SignInPage /> },
   { path: "signup", element: <SignUpPage /> },
   { path: "pending-approval", element: <PendingApprovalPage /> },
   { path: "account-rejected", element: <RejectedPage /> },
+  { path: "access-revoked", element: <RevokedPage /> },
 ];
 
 export default authRoutes;

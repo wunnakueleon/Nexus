@@ -73,7 +73,7 @@ export interface UserDirectoryRow {
 	role: AccessCodeRole;
 	worldId: number;
 	worldName: string;
-	status: "active" | "revoked";
+	status: "active" | "revoked" | "rejected";
 	approvedAt: Date | null;
 }
 

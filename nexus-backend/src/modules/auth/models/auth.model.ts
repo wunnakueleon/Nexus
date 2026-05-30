@@ -6,6 +6,7 @@ const toAuthResponse = (user: {
 	name: string;
 	role: string;
 	status: string;
+	approvedAt?: Date | null;
 	world?: { id: number; name: string } | null;
 }): AuthResponse => {
 	const status = user.role === "admin"
@@ -13,7 +14,9 @@ const toAuthResponse = (user: {
 		: user.status === "pending"
 			? "pending"
 			: user.status === "revoked"
-				? "rejected"
+				? user.approvedAt
+					? "revoked"
+					: "rejected"
 				: "active";
 
 	return {
@@ -85,6 +88,17 @@ export const signInWithCredentials = async (input: SignInInput): Promise<AuthRes
 		error.status = 401;
 		throw error;
 	}
+
+	return toAuthResponse(user);
+};
+
+export const getAuthStatusByUsername = async (username: string): Promise<AuthResponse | null> => {
+	const user = await prisma.user.findUnique({
+		where: { username },
+		include: { world: true },
+	});
+
+	if (!user) return null;
 
 	return toAuthResponse(user);
 };

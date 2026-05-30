@@ -18,7 +18,11 @@ export const listDirectoryUsers = async (): Promise<UserDirectoryRow[]> => {
 		role: user.role as UserDirectoryRow["role"],
 		worldId: user.worldId,
 		worldName: user.world.name,
-		status: user.status === "active" ? "active" : "revoked",
+		status: user.status === "active"
+			? "active"
+			: user.approvedAt
+				? "revoked"
+				: "rejected",
 		approvedAt: user.approvedAt,
 	}));
 };
@@ -29,6 +33,16 @@ export const updateUserStatus = async (
 ): Promise<UserDirectoryRow | null> => {
 	const user = await prisma.user.findUnique({ where: { id }, include: { world: true } });
 	if (!user) return null;
+	if (action === "reinstate" && user.world.status !== "active") {
+		const error = new Error("World is removed. Cannot reinstate user.") as Error & { status?: number };
+		error.status = 409;
+		throw error;
+	}
+	if (action === "reinstate" && !user.approvedAt) {
+		const error = new Error("Rejected users cannot be reinstated.") as Error & { status?: number };
+		error.status = 409;
+		throw error;
+	}
 
 	const nextStatus = action === "revoke" ? "revoked" : "active";
 	const updated = await prisma.user.update({
@@ -44,7 +58,11 @@ export const updateUserStatus = async (
 		role: updated.role as UserDirectoryRow["role"],
 		worldId: updated.worldId,
 		worldName: updated.world.name,
-		status: updated.status === "active" ? "active" : "revoked",
+		status: updated.status === "active"
+			? "active"
+			: updated.approvedAt
+				? "revoked"
+				: "rejected",
 		approvedAt: updated.approvedAt,
 	};
 };

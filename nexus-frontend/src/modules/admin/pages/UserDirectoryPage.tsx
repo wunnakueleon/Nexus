@@ -20,7 +20,10 @@ const ROLE_LABELS: Record<UserDirectoryRow['role'], string> = {
 const STATUS_LABELS: Record<UserDirectoryRow['status'], string> = {
   active: 'Active',
   revoked: 'Revoked',
+  rejected: 'Rejected',
 };
+
+const STATUS_FILTERS = ['Active', 'Revoked', 'Rejected'] as const;
 
 const WorldPill: React.FC<{ world: AdminWorldSummary }> = ({ world }) => (
   <span
@@ -116,7 +119,7 @@ const UserDirectoryPage: React.FC = () => {
             onChange={e => setFRole(e.target.value)}
           />
           <FilterSelect
-            options={['All', ...Object.values(STATUS_LABELS)]}
+            options={['All', ...STATUS_FILTERS]}
             value={fStatus}
             onChange={e => setFStatus(e.target.value)}
           />
@@ -146,7 +149,21 @@ const UserDirectoryPage: React.FC = () => {
                       <Td align="right" className="whitespace-nowrap">
                         {u.status === 'active'
                           ? <Button size="sm" variant="danger" onClick={() => handleStatus(u.id, 'revoke')}>Revoke Access</Button>
-                          : <Button size="sm" variant="primary" onClick={() => handleStatus(u.id, 'reinstate')}>Reinstate</Button>}
+                          : <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => handleStatus(u.id, 'reinstate')}
+                              disabled={u.status === 'rejected' || worldMap[u.worldId]?.status !== 'active'}
+                              title={
+                                u.status === 'rejected'
+                                  ? 'User was rejected'
+                                  : worldMap[u.worldId]?.status !== 'active'
+                                    ? 'World removed — cannot reinstate'
+                                    : undefined
+                              }
+                            >
+                              Reinstate
+                            </Button>}
                       </Td>
                     </tr>
                   ))}

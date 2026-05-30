@@ -56,7 +56,7 @@ export const getApprovalHistory = async (): Promise<ApprovalHistoryItem[]> => {
 		role: user.role as ApprovalHistoryItem["role"],
 		worldId: user.worldId,
 		worldName: user.world.name,
-		status: user.status === "active" ? "approved" : "rejected",
+		status: user.approvedAt ? "approved" : "rejected",
 		resolvedAt: user.approvedAt ?? user.createdAt,
 	}));
 };

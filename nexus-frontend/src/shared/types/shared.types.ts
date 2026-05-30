@@ -164,6 +164,8 @@ export interface OperatorState {
   role: string;
   worldId: string | null;
   name: string;
+  username?: string;
+  status?: "active" | "pending" | "rejected" | "revoked";
 }
 
 // ---- Sidebar ---------------------------------------------------------------

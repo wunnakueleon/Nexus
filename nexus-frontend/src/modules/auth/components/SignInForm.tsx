@@ -46,10 +46,14 @@ const SignInForm = () => {
       navigate('/account-rejected');
       return;
     }
+    if (response.status === 'revoked') {
+      navigate('/access-revoked');
+      return;
+    }
 
     const roleLabel = ROLE_LABELS[response.role];
     const worldId = response.worldName ? WORLD_NAME_TO_ID[response.worldName] ?? null : null;
-    setOperator({ role: roleLabel, worldId, name: response.name });
+    setOperator({ role: roleLabel, worldId, name: response.name, username, status: response.status });
     navigate(ROLE_PATHS[response.role]);
   };
 

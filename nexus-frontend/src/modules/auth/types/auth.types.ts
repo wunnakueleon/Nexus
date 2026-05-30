@@ -1,5 +1,5 @@
 export type AuthRole = "admin" | "resource_manager" | "transit_officer" | "commercial_citizen";
-export type AuthStatus = "active" | "pending" | "rejected";
+export type AuthStatus = "active" | "pending" | "rejected" | "revoked";
 
 export interface SignUpPayload {
 	name: string;

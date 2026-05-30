@@ -10,3 +10,8 @@ export const signIn = async (payload: SignInPayload): Promise<AuthResponse> => {
 	const { data } = await api.post<AuthResponse>("/auth/signin", payload);
 	return data;
 };
+
+export const fetchAuthStatus = async (username: string): Promise<AuthResponse> => {
+	const { data } = await api.get<AuthResponse>("/auth/status", { params: { username } });
+	return data;
+};
