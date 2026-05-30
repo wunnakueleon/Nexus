@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { approvalIdSchema, approvalResolveSchema } from "../schemas/approval.schema";
-import { getPendingApprovals, resolveApprovalById } from "../models/approval.model";
+import { getApprovalHistory, getPendingApprovals, resolveApprovalById } from "../models/approval.model";
 
 export const getApprovalQueue = async (
 	_req: Request,
@@ -32,6 +32,19 @@ export const resolveApproval = async (
 		}
 
 		res.json(result);
+	} catch (err) {
+		next(err);
+	}
+};
+
+export const getApprovalHistoryList = async (
+	_req: Request,
+	res: Response,
+	next: NextFunction,
+) => {
+	try {
+		const history = await getApprovalHistory();
+		res.json(history);
 	} catch (err) {
 		next(err);
 	}

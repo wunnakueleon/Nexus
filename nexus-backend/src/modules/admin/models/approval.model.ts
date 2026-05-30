@@ -1,5 +1,5 @@
 import { prisma } from "../../../db";
-import type { ApprovalAction, ApprovalQueueItem, ApprovalResolveResult } from "../types/admin.types";
+import type { ApprovalAction, ApprovalHistoryItem, ApprovalQueueItem, ApprovalResolveResult } from "../types/admin.types";
 
 export const getPendingApprovals = async (): Promise<ApprovalQueueItem[]> => {
 	const users = await prisma.user.findMany({
@@ -36,4 +36,25 @@ export const resolveApprovalById = async (
 	});
 
 	return { id, status: nextStatus };
+};
+
+export const getApprovalHistory = async (): Promise<ApprovalHistoryItem[]> => {
+	const users = await prisma.user.findMany({
+		where: {
+			role: { in: ["resource_manager", "transit_officer", "commercial_citizen"] },
+			status: { in: ["active", "revoked"] },
+		},
+		include: { world: true },
+		orderBy: { createdAt: "desc" },
+	});
+
+	return users.map(user => ({
+		id: user.id,
+		name: user.name,
+		role: user.role as ApprovalHistoryItem["role"],
+		worldId: user.worldId,
+		worldName: user.world.name,
+		status: user.status === "active" ? "approved" : "rejected",
+		resolvedAt: user.approvedAt ?? user.createdAt,
+	}));
 };

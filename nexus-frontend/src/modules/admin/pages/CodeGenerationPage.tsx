@@ -65,8 +65,9 @@ const CodeGenerationPage: React.FC = () => {
       const [worldList, codeList] = await Promise.all([fetchWorlds(), fetchAccessCodes()]);
       setWorlds(worldList);
       setCodes(codeList);
-      if (worldList.length && !world) {
-        setWorld(String(worldList[0].id));
+      const firstActive = worldList.find(w => w.status === 'active');
+      if (firstActive && !world) {
+        setWorld(String(firstActive.id));
       }
     } catch (err) {
       setError('Unable to load access codes.');
@@ -79,7 +80,8 @@ const CodeGenerationPage: React.FC = () => {
     void loadData();
   }, [loadData]);
 
-  const worldOpts = worlds.map(w => ({ value: String(w.id), label: w.name }));
+  const activeWorlds = useMemo(() => worlds.filter(w => w.status === 'active'), [worlds]);
+  const worldOpts = activeWorlds.map(w => ({ value: String(w.id), label: w.name }));
   const filtered = useMemo(() => codes.filter(c =>
     (fWorld === 'All' || String(c.worldId) === fWorld) &&
     (fRole === 'All' || ROLE_LABEL[c.role] === fRole) &&
