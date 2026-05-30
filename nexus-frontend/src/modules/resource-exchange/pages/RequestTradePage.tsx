@@ -18,7 +18,6 @@ const RequestTradePage: React.FC = () => {
   const { worlds, worldById, operator } = useApp();
   const navigate = useNavigate();
 
-  // world name → DB integer id map
   const [nameToDbId, setNameToDbId] = useState<Record<string, number>>({});
   const [submitting, setSubmitting]  = useState(false);
 
@@ -30,10 +29,10 @@ const RequestTradePage: React.FC = () => {
     });
   }, []);
 
-  const myWorldName  = operator?.worldId ? worldById(operator.worldId).name : null;
-  const myDbWorldId  = myWorldName ? nameToDbId[myWorldName] ?? null : null;
+  const myWorldName = operator?.worldId ? worldById(operator.worldId).name : null;
+  const myDbWorldId = myWorldName ? nameToDbId[myWorldName] ?? null : null;
 
-  const otherWorlds  = useMemo(
+  const otherWorlds = useMemo(
     () => worlds.filter(w => w.name !== myWorldName),
     [worlds, myWorldName],
   );
@@ -46,7 +45,6 @@ const RequestTradePage: React.FC = () => {
   const [urgency,  setUrgency]  = useState<TradeUrgency>('normal');
   const [comment,  setComment]  = useState('');
 
-  // Set default target world once worlds are loaded
   useEffect(() => {
     if (!toWorldStrId && otherWorlds.length > 0) {
       setToWorldStrId(otherWorlds[0].id);
@@ -62,14 +60,14 @@ const RequestTradePage: React.FC = () => {
     setSubmitting(true);
     try {
       await tradeApi.create({
-        fromWorldId:    myDbWorldId,
-        toWorldId:      toDbWorldId,
-        resourceWanted: wantRes,
-        quantityWanted:    wantQty,
-        resourceOffered:   offerRes,
-        quantityOffered:   offerQty,
+        fromWorldId:     myDbWorldId,
+        toWorldId:       toDbWorldId,
+        resourceWanted:  wantRes,
+        quantityWanted:  wantQty,
+        resourceOffered: offerRes,
+        quantityOffered: offerQty,
         urgency,
-        requestComment:    comment || undefined,
+        requestComment:  comment || undefined,
       });
       navigate('/resource-exchange/trade');
     } finally {
@@ -78,11 +76,15 @@ const RequestTradePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl">
-      <PageHeader title="Request Trade" sub="Propose a one-shot resource exchange with another world." />
-      <Card className="p-6 space-y-5">
+    <div className="w-full max-w-2xl">
+      <PageHeader
+        title="Request Trade"
+        sub="Propose a one-shot resource exchange with another world."
+      />
+      <Card className="p-4 sm:p-6 space-y-4 sm:space-y-5">
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* From / To */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <Field label="From">
             <div className="py-1">
               {operator?.worldId && <WorldBadge worldId={operator.worldId} />}
@@ -97,9 +99,10 @@ const RequestTradePage: React.FC = () => {
           </Field>
         </div>
 
-        <div className="border border-line rounded p-4 bg-bg-input/50">
+        {/* Resource wanted */}
+        <div className="border border-line rounded p-3 sm:p-4 bg-bg-input/50">
           <div className="text-[11px]/[1.45] nx-uppercase text-fg-muted mb-3">Resource you want</div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Field label="Resource">
               <Select
                 options={RESOURCE_OPTIONS.map(r => ({ value: r, label: cap(r) }))}
@@ -113,9 +116,10 @@ const RequestTradePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="border border-line rounded p-4 bg-bg-input/50">
+        {/* Resource offered */}
+        <div className="border border-line rounded p-3 sm:p-4 bg-bg-input/50">
           <div className="text-[11px]/[1.45] nx-uppercase text-fg-muted mb-3">Resource you offer</div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Field label="Resource">
               <Select
                 options={RESOURCE_OPTIONS.map(r => ({ value: r, label: cap(r) }))}
@@ -138,11 +142,19 @@ const RequestTradePage: React.FC = () => {
         </Field>
 
         <Field label="Comment (optional)">
-          <Textarea rows={3} value={comment} onChange={e => setComment(e.target.value)} placeholder="Add context for your request..." />
+          <Textarea
+            rows={3}
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            placeholder="Add context for your request..."
+          />
         </Field>
 
-        <div className="flex justify-end gap-2 pt-1">
-          <Button variant="ghost" onClick={() => navigate('/resource-exchange/trade')}>Cancel</Button>
+        {/* Actions */}
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+          <Button variant="ghost" onClick={() => navigate('/resource-exchange/trade')}>
+            Cancel
+          </Button>
           <Button variant="solid" icon="arrow" onClick={submit} disabled={submitting || !myDbWorldId}>
             {submitting ? 'Sending…' : 'Send Request'}
           </Button>
