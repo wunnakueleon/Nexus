@@ -16,11 +16,11 @@ const unit = (type: string) => type === 'water' ? 'KL' : 'MT';
 const ResourceOverviewPage: React.FC = () => {
   const { worlds, worldById, operator } = useApp();
 
-  const [allResources, setAllResources]   = useState<ResourceRow[]>([]);
-  const [loading, setLoading]             = useState(true);
-  const [editing, setEditing]             = useState(false);
-  const [draft, setDraft]                 = useState<ResourceRow[] | null>(null);
-  const [saving, setSaving]               = useState(false);
+  const [allResources, setAllResources] = useState<ResourceRow[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [editing, setEditing]           = useState(false);
+  const [draft, setDraft]               = useState<ResourceRow[] | null>(null);
+  const [saving, setSaving]             = useState(false);
 
   const fetchResources = useCallback(async () => {
     try {
@@ -33,14 +33,12 @@ const ResourceOverviewPage: React.FC = () => {
 
   useEffect(() => { fetchResources(); }, [fetchResources]);
 
-  // world name → DB integer id
   const nameToDbId = useMemo(() => {
     const map: Record<string, number> = {};
     allResources.forEach(r => { map[r.world.name] = r.worldId; });
     return map;
   }, [allResources]);
 
-  // DB integer id → resources array
   const resourcesByDbId = useMemo(() => {
     const map: Record<number, ResourceRow[]> = {};
     allResources.forEach(r => {
@@ -50,8 +48,8 @@ const ResourceOverviewPage: React.FC = () => {
     return map;
   }, [allResources]);
 
-  const myWorldName  = operator?.worldId ? worldById(operator.worldId).name : null;
-  const myDbWorldId  = myWorldName ? nameToDbId[myWorldName] ?? null : null;
+  const myWorldName = operator?.worldId ? worldById(operator.worldId).name : null;
+  const myDbWorldId = myWorldName ? nameToDbId[myWorldName] ?? null : null;
 
   const startEdit = () => {
     if (!myDbWorldId) return;
@@ -85,24 +83,29 @@ const ResourceOverviewPage: React.FC = () => {
         title="Resource Overview"
         sub="Live stock telemetry across all active worlds. You may edit your own world's levels."
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {worlds.map(w => {
-          const dbId  = nameToDbId[w.name];
+          const dbId   = nameToDbId[w.name];
           const isMine = dbId != null && dbId === myDbWorldId;
-          const rows  = isMine && editing && draft ? draft : (dbId ? (resourcesByDbId[dbId] ?? []) : []);
+          const rows   = isMine && editing && draft ? draft : (dbId ? (resourcesByDbId[dbId] ?? []) : []);
 
           return (
             <Card key={w.id} topStripe={w.color} className="flex flex-col">
-              <div className="px-4 py-3 border-b border-line flex items-center justify-between">
-                <span className="font-semibold text-fg text-sm">{w.name}</span>
+              {/* Card header */}
+              <div className="px-4 py-3 border-b border-line flex items-center justify-between gap-2 min-w-0">
+                <span className="font-semibold text-fg text-sm truncate">{w.name}</span>
                 <WorldBadge worldId={w.id} size="sm" dot={false} />
               </div>
-              <div className="px-1 py-1 flex-1">
-                <table className="w-full">
+
+              {/* Resource table */}
+              <div className="px-1 py-1 flex-1 overflow-x-auto">
+                <table className="w-full min-w-[260px]">
                   <tbody>
                     {rows.map((r, i) => (
                       <tr key={r.resourceType} className="border-b border-line/60 last:border-0">
-                        <td className="py-2 pl-2.5 pr-1 text-[12px]/[1.3] text-fg capitalize">{r.resourceType}</td>
+                        <td className="py-2 pl-2.5 pr-1 text-[12px]/[1.3] text-fg capitalize w-[80px]">
+                          {r.resourceType}
+                        </td>
                         <td className="py-2 px-1 text-right">
                           {isMine && editing
                             ? <input
@@ -113,9 +116,9 @@ const ResourceOverviewPage: React.FC = () => {
                                   d[i] = { ...d[i], stock: +e.target.value };
                                   setDraft(d);
                                 }}
-                                className="w-20 bg-bg-input border border-line rounded text-fg text-[13px]/[1.5] font-mono px-1.5 py-1 text-right focus:border-amber"
+                                className="w-16 sm:w-20 bg-bg-input border border-line rounded text-fg text-[13px]/[1.5] font-mono px-1.5 py-1 text-right focus:border-amber"
                               />
-                            : <span className="font-mono text-[13px]/[1.5] text-fg tnum">
+                            : <span className="font-mono text-[13px]/[1.5] text-fg tnum whitespace-nowrap">
                                 {r.stock.toLocaleString()}{' '}
                                 <span className="text-fg-muted text-[10px]/[1.3]">{unit(r.resourceType)}</span>
                               </span>}
@@ -135,7 +138,8 @@ const ResourceOverviewPage: React.FC = () => {
                               </select>
                             : <StatusBadge status={cap(r.status)} pulse={r.status === 'critical'} />}
                         </td>
-                        <td className="py-2 pl-1 pr-2.5 text-right font-mono text-[10px]/[1.3] text-fg-muted whitespace-nowrap">
+                        {/* Burn rate — hidden on xs, visible from sm */}
+                        <td className="hidden sm:table-cell py-2 pl-1 pr-2.5 text-right font-mono text-[10px]/[1.3] text-fg-muted whitespace-nowrap">
                           {r.burnRate} {unit(r.resourceType)}/day
                         </td>
                       </tr>
@@ -143,6 +147,8 @@ const ResourceOverviewPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Edit / save actions */}
               {isMine && (
                 <div className="px-3 py-3 border-t border-line">
                   {editing
@@ -152,7 +158,9 @@ const ResourceOverviewPage: React.FC = () => {
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
                       </div>
-                    : <Button size="sm" variant="primary" className="w-full" icon="edit" onClick={startEdit}>Edit Stocks</Button>}
+                    : <Button size="sm" variant="primary" className="w-full" icon="edit" onClick={startEdit}>
+                        Edit Stocks
+                      </Button>}
                 </div>
               )}
             </Card>
