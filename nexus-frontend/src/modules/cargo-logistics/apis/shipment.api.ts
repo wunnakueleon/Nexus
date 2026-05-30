@@ -11,8 +11,10 @@ import type {
 
 const BASE = "/cargo-logistics/shipments";
 
-export async function getShipments(filters?: ShipmentFilters): Promise<ShipmentSummary[]> {
-    const { data } = await api.get<ShipmentSummary[]>(BASE, { params: filters });
+// TODO: drop the `worldId` arg once auth provides the scoping world server-side
+export async function getShipments(filters?: ShipmentFilters, worldId?: number): Promise<ShipmentSummary[]> {
+    const params = { ...filters, ...(worldId ? { worldId } : {}) };
+    const { data } = await api.get<ShipmentSummary[]>(BASE, { params });
     return data;
 }
 

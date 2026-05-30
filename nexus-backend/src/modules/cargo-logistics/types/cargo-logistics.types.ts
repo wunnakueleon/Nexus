@@ -51,7 +51,9 @@ export interface ShipmentFlagData {
 
 // --- Response Shapes ---
 
-export type ShipmentSummary = ShipmentData;
+export interface ShipmentSummary extends ShipmentData {
+  items: ShipmentItemData[];
+}
 
 export interface ShipmentDetail extends ShipmentData {
   items: ShipmentItemData[];

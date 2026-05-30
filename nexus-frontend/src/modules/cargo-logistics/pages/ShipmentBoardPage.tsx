@@ -14,6 +14,7 @@ import type { ShipmentSummary } from '../types/cargo-logistics.types';
 
 // Matches seed creation order — update if DB is re-seeded with different IDs
 const WORLD_BY_ID: Record<number, string> = { 1: 'GLV', 2: 'NPT', 3: 'MNU', 4: 'WNM' };
+const WORLD_CODE_TO_ID: Record<string, number> = { GLV: 1, NPT: 2, MNU: 3, WNM: 4 };
 
 const STATUS_LABEL: Record<string, string> = {
   preparing: 'Preparing', departed: 'Departed', in_transit: 'In Transit',
@@ -33,7 +34,7 @@ function adaptSummary(s: ShipmentSummary): BoardRow {
     departure: s.scheduledDeparture ?? 'TBD',
     eta: s.estimatedArrival ?? 'TBD',
     flagged: false,
-    manifest: [],
+    manifest: s.items.map(i => ({ res: i.resourceType, qty: i.quantity, notes: i.conditionNotes ?? '' })),
     timeline: [],
     flags: [],
     ref: null,
@@ -53,11 +54,11 @@ const ShipmentBoardPage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    getShipments()
+    getShipments(undefined, WORLD_CODE_TO_ID[mine])
       .then(data => { if (!cancelled) setShipments(data.map(adaptSummary)); })
       .catch(() => { if (!cancelled) setShipments([]); });
     return () => { cancelled = true; };
-  }, []);
+  }, [mine]);
 
   const list = shipments.filter(s =>
     (s.origin === mine || s.dest === mine) &&

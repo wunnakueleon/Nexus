@@ -50,8 +50,9 @@ export async function listShipments(
             originWorldId: filters.originWorldId,
             destinationWorldId: filters.destinationWorldId,
         },
+        include: { items: true },
         orderBy: { createdAt: "desc" },
-    });
+    }) as Promise<ShipmentSummary[]>;
 }
 
 export async function getShipmentById(id: number): Promise<ShipmentDetail | null> {

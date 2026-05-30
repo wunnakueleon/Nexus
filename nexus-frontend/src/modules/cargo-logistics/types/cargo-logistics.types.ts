@@ -30,6 +30,7 @@ export interface ShipmentSummary {
     notes: string | null;
     createdAt: string;
     updatedAt: string;
+    items: ShipmentItemData[];
 }
 
 export interface ShipmentItemData {

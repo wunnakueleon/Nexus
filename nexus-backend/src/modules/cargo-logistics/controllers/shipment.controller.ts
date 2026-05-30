@@ -35,8 +35,8 @@ export async function listShipmentsHandler(
     next: NextFunction,
 ): Promise<void> {
     try {
-        // TODO: remove fallback once auth middleware is implemented
-        const worldId = req.user?.worldId ?? 1;
+        // TODO: replace query-param scoping with req.user.worldId once auth is implemented
+        const worldId = req.user?.worldId ?? (Number(req.query.worldId) || 1);
 
         const parsed = ShipmentFiltersSchema.safeParse(req.query);
         if (!parsed.success) return void next(appError(400, "Invalid query parameters"));
