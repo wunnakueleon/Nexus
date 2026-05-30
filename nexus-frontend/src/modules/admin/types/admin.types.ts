@@ -63,3 +63,13 @@ export interface ApprovalHistoryItem {
 	status: "approved" | "rejected";
 	resolvedAt: string | null;
 }
+
+export interface UserDirectoryRow {
+	id: number;
+	name: string;
+	role: AccessCodeRole;
+	worldId: number;
+	worldName: string;
+	status: "active" | "revoked";
+	approvedAt: string | null;
+}

@@ -132,7 +132,10 @@ const CodeGenerationPage: React.FC = () => {
           <Field label="Role">
             <Select options={ROLE_OPTS} value={role} onChange={e => setRole(e.target.value)} />
           </Field>
-          <Field label="Quantity" hint={role === 'Commercial Citizen' ? 'bulk issue permitted' : 'government role — issue 1 per generation'}>
+          <Field label="Quantity">
+            <div className="text-[11px]/[1.45] text-fg-muted font-mono mb-1">
+              {role === 'Commercial Citizen' ? 'bulk issue permitted' : 'government role — issue 1 per generation'}
+            </div>
             <Input
               type="number"
               min="1"

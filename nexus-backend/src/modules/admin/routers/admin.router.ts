@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getApprovalHistoryList, getApprovalQueue, resolveApproval } from "../controllers/approval.controller";
 import { getAccessCodes, generateCodes, expireCode } from "../controllers/code.controller";
+import { getUsers, setUserStatus } from "../controllers/user.controller";
 import {
 	getPendingWorldRequests,
 	getWorldRequestHistory,
@@ -21,6 +22,8 @@ adminRouter.get("/world-requests/pending", getPendingWorldRequests);
 adminRouter.get("/world-requests/history", getWorldRequestHistory);
 adminRouter.post("/world-requests", submitWorldRequest);
 adminRouter.patch("/world-requests/:id", resolveWorldRequestById);
+adminRouter.get("/users", getUsers);
+adminRouter.patch("/users/:id/status", setUserStatus);
 adminRouter.get("/codes", getAccessCodes);
 adminRouter.post("/codes/generate", generateCodes);
 adminRouter.patch("/codes/:id/expire", expireCode);
