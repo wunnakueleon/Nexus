@@ -2,8 +2,10 @@ import type { Request, Response, NextFunction } from 'express';
 import { tradeModel } from '../models/trade.model';
 import { createTradeSchema, respondTradeSchema } from '../schemas/trade.schema';
 
+type IdParams = { id: string };
+
 export const tradeController = {
-  getByWorld: async (req: Request, res: Response, next: NextFunction) => {
+  getByWorld: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const worldId = parseInt(req.query.worldId as string, 10);
       if (isNaN(worldId)) {
@@ -17,7 +19,7 @@ export const tradeController = {
     }
   },
 
-  getById: async (req: Request, res: Response, next: NextFunction) => {
+  getById: async (req: Request<IdParams>, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -35,11 +37,11 @@ export const tradeController = {
     }
   },
 
-  create: async (req: Request, res: Response, next: NextFunction) => {
+  create: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const parsed = createTradeSchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json({ success: false, errors: parsed.error.flatten() });
+        res.status(400).json({ success: false, errors: parsed.error.issues });
         return;
       }
       const data = await tradeModel.create(parsed.data);
@@ -49,7 +51,7 @@ export const tradeController = {
     }
   },
 
-  accept: async (req: Request, res: Response, next: NextFunction) => {
+  accept: async (req: Request<IdParams>, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -58,7 +60,7 @@ export const tradeController = {
       }
       const parsed = respondTradeSchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json({ success: false, errors: parsed.error.flatten() });
+        res.status(400).json({ success: false, errors: parsed.error.issues });
         return;
       }
       const data = await tradeModel.accept(id, parsed.data);
@@ -68,7 +70,7 @@ export const tradeController = {
     }
   },
 
-  decline: async (req: Request, res: Response, next: NextFunction) => {
+  decline: async (req: Request<IdParams>, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -77,7 +79,7 @@ export const tradeController = {
       }
       const parsed = respondTradeSchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json({ success: false, errors: parsed.error.flatten() });
+        res.status(400).json({ success: false, errors: parsed.error.issues });
         return;
       }
       const data = await tradeModel.decline(id, parsed.data);
@@ -87,7 +89,7 @@ export const tradeController = {
     }
   },
 
-  cancel: async (req: Request, res: Response, next: NextFunction) => {
+  cancel: async (req: Request<IdParams>, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -101,7 +103,7 @@ export const tradeController = {
     }
   },
 
-  fulfill: async (req: Request, res: Response, next: NextFunction) => {
+  fulfill: async (req: Request<IdParams>, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
