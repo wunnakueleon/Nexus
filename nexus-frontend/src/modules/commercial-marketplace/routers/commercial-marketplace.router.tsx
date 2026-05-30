@@ -17,6 +17,7 @@ const commercialMarketplaceRoutes: RouteObject[] = [
       { path: "browse/:id", element: <ListingDetailPage /> },
       { path: "browse/:id/offer", element: <TradeOfferPage /> },
       { path: "post", element: <PostItemPage /> },
+      { path: "edit/:id", element: <PostItemPage /> },
       { path: "my-items", element: <MyItemsPage /> },
       { path: "my-trades", element: <MyTradesPage /> },
     ],

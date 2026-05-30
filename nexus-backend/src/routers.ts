@@ -11,6 +11,6 @@ mainRouter.use("/auth", authRouter);
 mainRouter.use("/admin", adminRouter);
 mainRouter.use("/resource-exchange", resourceExchangeRouter);
 mainRouter.use("/cargo-logistics", cargoLogisticsRouter);
-mainRouter.use("/commercial-marketplace", commercialMarketplaceRouter);
+mainRouter.use("/api/commercial-marketplace", commercialMarketplaceRouter);
 
 export default mainRouter;
