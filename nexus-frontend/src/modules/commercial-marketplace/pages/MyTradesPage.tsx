@@ -13,7 +13,7 @@ import {
   getIncomingOffers, getOutgoingOffers, getCompletedOffers,
   acceptOffer, declineOffer, withdrawOffer,
 } from '../apis/trade-offer.api';
-import type { TradeOfferResponse, ListingSummary } from '../types/commercial-marketplace.types';
+import type { TradeOfferResponse, ListingResponse } from '../types/commercial-marketplace.types';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pending', accepted: 'Accepted', declined: 'Declined', withdrawn: 'Withdrawn',
@@ -29,10 +29,10 @@ const WorldTag: React.FC<{ name: string; color: string }> = ({ name, color }) =>
 
 interface PairProps {
   leftLabel: string;
-  left: ListingSummary;
+  left: ListingResponse;
   leftWorld?: { name: string; color: string };
   rightLabel: string;
-  right: ListingSummary;
+  right: ListingResponse;
   rightWorld?: { name: string; color: string };
 }
 
@@ -41,7 +41,7 @@ const Pair: React.FC<PairProps> = ({ leftLabel, left, leftWorld, rightLabel, rig
     <div>
       <div className="text-[10px]/[1.45] nx-uppercase text-fg-muted mb-1.5">{leftLabel}</div>
       <div className="flex items-center gap-2.5">
-        <ItemThumb icon={left.category} size="sm" />
+        <ItemThumb icon={left.category} imageUrl={left.images[0]?.imageUrl} size="sm" />
         <div>
           <div className="text-[13px]/[1.5] font-semibold text-fg line-clamp-1">{left.title}</div>
           {leftWorld && <div className="mt-0.5"><WorldTag name={leftWorld.name} color={leftWorld.color} /></div>}
@@ -52,7 +52,7 @@ const Pair: React.FC<PairProps> = ({ leftLabel, left, leftWorld, rightLabel, rig
     <div>
       <div className="text-[10px]/[1.45] nx-uppercase text-fg-muted mb-1.5">{rightLabel}</div>
       <div className="flex items-center gap-2.5">
-        <ItemThumb icon={right.category} size="sm" />
+        <ItemThumb icon={right.category} imageUrl={right.images[0]?.imageUrl} size="sm" />
         <div>
           <div className="text-[13px]/[1.5] font-semibold text-fg line-clamp-1">{right.title}</div>
           {rightWorld && <div className="mt-0.5"><WorldTag name={rightWorld.name} color={rightWorld.color} /></div>}

@@ -76,10 +76,11 @@ const PostItemPage: React.FC = () => {
   }, [id]);
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).slice(0, 4);
+    const files = Array.from(e.target.files ?? []);
     try {
       const dataUrls = await Promise.all(files.map(f => fileToCompressedDataUrl(f)));
-      setImages(dataUrls);
+      // Append to existing photos (cap at 4) so adding one at a time accumulates
+      setImages(prev => [...prev, ...dataUrls].slice(0, 4));
     } catch {
       flash('Could not process one of the images');
     }
@@ -152,14 +153,14 @@ const PostItemPage: React.FC = () => {
             <div>
               <Label>Category</Label>
               <Controller name="category" control={control} render={({ field }) => (
-                <Select options={LISTING_CATEGORIES} value={field.value} onChange={e => field.onChange(e.target.value)} />
+                <Select options={[...LISTING_CATEGORIES]} value={field.value} onChange={e => field.onChange(e.target.value)} />
               )} />
               <ErrMsg msg={errors.category?.message} />
             </div>
             <div>
               <Label>Condition</Label>
               <Controller name="condition" control={control} render={({ field }) => (
-                <Select options={LISTING_CONDITIONS} value={field.value} onChange={e => field.onChange(e.target.value)} />
+                <Select options={[...LISTING_CONDITIONS]} value={field.value} onChange={e => field.onChange(e.target.value)} />
               )} />
               <ErrMsg msg={errors.condition?.message} />
             </div>
