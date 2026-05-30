@@ -73,7 +73,7 @@ const TradeOfferPage: React.FC = () => {
         <Card className="p-4">
           <SectionLabel>Item You Want</SectionLabel>
           <div className="flex gap-3">
-            <ItemThumb icon={listing.category} />
+            <ItemThumb icon={listing.category} imageUrl={listing.images[0]?.imageUrl} />
             <div>
               <div className="text-sm font-semibold text-fg">{listing.title}</div>
               <div className="mt-1">
@@ -91,7 +91,7 @@ const TradeOfferPage: React.FC = () => {
                 {available.map(it => (
                   <button key={it.id} onClick={() => setSel(it.id)}
                     className={`text-left p-2.5 rounded border transition-colors ${sel === it.id ? 'border-amber bg-amber/5' : 'border-line hover:border-line-hover'}`}>
-                    <ItemThumb icon={it.category} size="lg" />
+                    <ItemThumb icon={it.category} imageUrl={it.images[0]?.imageUrl} size="lg" />
                     <div className="text-[12px]/[1.45] font-semibold text-fg mt-2 line-clamp-1">{it.title}</div>
                     <span className="text-[10px]/[1.45] nx-uppercase text-fg-muted">{it.category}</span>
                   </button>

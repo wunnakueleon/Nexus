@@ -66,7 +66,7 @@ const MyItemsPage: React.FC = () => {
             ]}>
               {items.map(it => (
                 <tr key={it.id} className="border-b border-line last:border-0">
-                  <Td><ItemThumb icon={it.category} size="sm" /></Td>
+                  <Td><ItemThumb icon={it.category} imageUrl={it.images[0]?.imageUrl} size="sm" /></Td>
                   <Td className="font-semibold text-fg">{it.title}</Td>
                   <Td className="text-fg-secondary text-[13px]/[1.5]">{it.category}</Td>
                   <Td>
@@ -78,7 +78,7 @@ const MyItemsPage: React.FC = () => {
                   </Td>
                   <Td align="right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button size="sm" variant="ghost" icon="edit" disabled={it.status !== 'available'}>Edit</Button>
+                      <Button size="sm" variant="ghost" icon="edit" disabled={it.status !== 'available'} onClick={() => navigate(`${BASE}/edit/${it.id}`)}>Edit</Button>
                       <Button size="sm" variant="danger" icon="trash" disabled={it.status !== 'available'} onClick={() => handleDelete(it.id)}>Delete</Button>
                     </div>
                   </Td>

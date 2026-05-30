@@ -1,14 +1,15 @@
-import React, { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useApp } from '../../../shared/hooks/useApp';
 import Button from '../../../shared/components/Button';
 import Card from '../../../shared/components/Card';
-import { fieldCls, Input, Textarea, Select } from '../../../shared/components/Field';
+import { Input, Textarea, Select } from '../../../shared/components/Field';
 import Icon from '../../../shared/components/Icon';
+import LoadingState from '../../../shared/components/LoadingState';
 import PageHeader from '../../../shared/components/PageHeader';
-import { createListing } from '../apis/listing.api';
+import { createListing, getListingById, updateListing } from '../apis/listing.api';
 import { postItemSchema, LISTING_CATEGORIES, LISTING_CONDITIONS, type PostItemFormValues } from '../schemas/listing.schema';
 
 const BASE = '/commercial-marketplace';
@@ -49,14 +50,30 @@ const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const PostItemPage: React.FC = () => {
   const { flash } = useApp();
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEdit = Boolean(id);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // base64 data URLs — used for both preview and submission
   const [images, setImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(isEdit);
 
-  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<PostItemFormValues>({
+  const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<PostItemFormValues>({
     resolver: zodResolver(postItemSchema),
     defaultValues: { category: 'tools', condition: 'used' },
   });
+
+  // Edit mode: load the existing listing and prefill the form
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    getListingById(Number(id))
+      .then(l => {
+        reset({ title: l.title, description: l.description, category: l.category, condition: l.condition });
+        setImages(l.images.map(img => img.imageUrl));
+      })
+      .catch(() => flash('Failed to load item'))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).slice(0, 4);
@@ -75,17 +92,27 @@ const PostItemPage: React.FC = () => {
 
   const onSubmit = async (data: PostItemFormValues) => {
     try {
-      await createListing({ ...data, imageUrls: images });
-      flash('Item posted to marketplace');
+      if (isEdit && id) {
+        await updateListing(Number(id), { ...data, imageUrls: images });
+        flash('Item updated');
+      } else {
+        await createListing({ ...data, imageUrls: images });
+        flash('Item posted to marketplace');
+      }
       navigate(`${BASE}/my-items`);
     } catch {
-      flash('Failed to post item — backend may not be running');
+      flash(isEdit ? 'Failed to update item' : 'Failed to post item — backend may not be running');
     }
   };
 
+  if (loading) return <LoadingState />;
+
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Post Item" sub="List an item for barter on the marketplace." />
+      <PageHeader
+        title={isEdit ? 'Edit Item' : 'Post Item'}
+        sub={isEdit ? 'Update your marketplace listing.' : 'List an item for barter on the marketplace.'}
+      />
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card className="p-6 space-y-5">
 
@@ -146,8 +173,8 @@ const PostItemPage: React.FC = () => {
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" type="button" onClick={() => navigate(`${BASE}/my-items`)}>Cancel</Button>
-            <Button variant="solid" icon="plus" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Posting...' : 'Post Item'}
+            <Button variant="solid" icon={isEdit ? 'check' : 'plus'} type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Post Item'}
             </Button>
           </div>
 

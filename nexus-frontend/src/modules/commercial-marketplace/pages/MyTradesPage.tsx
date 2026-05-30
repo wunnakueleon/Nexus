@@ -69,25 +69,20 @@ const MyTradesPage: React.FC = () => {
   const [incoming, setIncoming] = useState<TradeOfferResponse[]>([]);
   const [outgoing, setOutgoing] = useState<TradeOfferResponse[]>([]);
   const [completed, setCompleted] = useState<TradeOfferResponse[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Load all three lists at once so every tab count is correct immediately
   useEffect(() => {
     setLoading(true);
-    const fetchers: Record<string, () => Promise<TradeOfferResponse[]>> = {
-      incoming: getIncomingOffers,
-      outgoing: getOutgoingOffers,
-      completed: getCompletedOffers,
-    };
-    fetchers[tab]()
-      .then(data => {
-        const safe = Array.isArray(data) ? data : [];
-        if (tab === 'incoming') setIncoming(safe);
-        else if (tab === 'outgoing') setOutgoing(safe);
-        else setCompleted(safe);
+    Promise.all([getIncomingOffers(), getOutgoingOffers(), getCompletedOffers()])
+      .then(([inc, out, done]) => {
+        setIncoming(Array.isArray(inc) ? inc : []);
+        setOutgoing(Array.isArray(out) ? out : []);
+        setCompleted(Array.isArray(done) ? done : []);
       })
       .catch(() => flash('Failed to load offers'))
       .finally(() => setLoading(false));
-  }, [tab]);
+  }, []);
 
   const handleAccept = async (id: number) => {
     try {

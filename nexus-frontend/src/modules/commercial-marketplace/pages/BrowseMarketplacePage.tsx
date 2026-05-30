@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../../../shared/hooks/useApp';
 import Icon from '../../../shared/components/Icon';
 import Card from '../../../shared/components/Card';
 import { Select } from '../../../shared/components/Field';
@@ -9,10 +8,19 @@ import LoadingState from '../../../shared/components/LoadingState';
 import PageHeader from '../../../shared/components/PageHeader';
 import ItemThumb from '../components/ItemThumb';
 import { getListings } from '../apis/listing.api';
-import type { ListingResponse, ListingCategory } from '../types/commercial-marketplace.types';
+import type { ListingResponse, ListingCategory, ListingCondition } from '../types/commercial-marketplace.types';
 import { LISTING_CATEGORIES } from '../schemas/listing.schema';
 
 const BASE = '/commercial-marketplace';
+
+// API condition values → display labels
+const CONDITION_OPTIONS: { value: ListingCondition | 'All'; label: string }[] = [
+  { value: 'All',      label: 'All Conditions' },
+  { value: 'new_item', label: 'New' },
+  { value: 'used',     label: 'Used' },
+  { value: 'handmade', label: 'Handmade' },
+  { value: 'rare',     label: 'Rare' },
+];
 
 const WorldTag: React.FC<{ name: string; color: string }> = ({ name, color }) => (
   <span className="inline-flex items-center gap-1.5 rounded text-[10px]/[1.45] font-semibold px-1.5 py-0.5"
@@ -23,7 +31,6 @@ const WorldTag: React.FC<{ name: string; color: string }> = ({ name, color }) =>
 );
 
 const BrowseMarketplacePage: React.FC = () => {
-  const { worlds } = useApp();
   const navigate = useNavigate();
 
   const [listings, setListings] = useState<ListingResponse[]>([]);
@@ -33,24 +40,36 @@ const BrowseMarketplacePage: React.FC = () => {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<ListingCategory | 'All'>('All');
   const [worldId, setWorldId] = useState<number | 'All'>('All');
+  const [status, setStatus] = useState<'All' | 'available' | 'in_pending_trade'>('All');
+  const [cond, setCond] = useState<ListingCondition | 'All'>('All');
 
+  // Fetch the full board once; all filtering is client-side below.
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const params = {
-      ...(cat !== 'All' && { category: cat }),
-      ...(worldId !== 'All' && { worldId }),
-    };
-    getListings(params)
+    getListings()
       .then(data => setListings(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load listings.'))
       .finally(() => setLoading(false));
-  }, [cat, worldId]);
+  }, []);
 
-  // keyword filter is client-side to avoid re-fetching on every keystroke
-  const filtered = q.trim()
-    ? listings.filter(l => l.title.toLowerCase().includes(q.toLowerCase()))
-    : listings;
+  // World options derived from real listing data (numeric backend IDs)
+  const worldOptions = useMemo(() => {
+    const seen = new Map<number, string>();
+    listings.forEach(l => seen.set(l.user.world.id, l.user.world.name));
+    return [
+      { value: 'All', label: 'All Worlds' },
+      ...[...seen].map(([wid, name]) => ({ value: String(wid), label: name })),
+    ];
+  }, [listings]);
+
+  const filtered = listings.filter(l =>
+    (cat === 'All' || l.category === cat) &&
+    (worldId === 'All' || l.user.world.id === worldId) &&
+    (status === 'All' || l.status === status) &&
+    (cond === 'All' || l.condition === cond) &&
+    (q.trim() === '' || l.title.toLowerCase().includes(q.toLowerCase())),
+  );
 
   return (
     <div>
@@ -67,9 +86,23 @@ const BrowseMarketplacePage: React.FC = () => {
           onChange={e => setCat(e.target.value as ListingCategory | 'All')}
         />
         <Select
-          options={[{ value: 'All', label: 'All Worlds' }, ...worlds.map(w => ({ value: String(w.id), label: w.name }))]}
+          options={worldOptions}
           value={String(worldId)}
           onChange={e => setWorldId(e.target.value === 'All' ? 'All' : Number(e.target.value))}
+        />
+        <Select
+          options={CONDITION_OPTIONS}
+          value={cond}
+          onChange={e => setCond(e.target.value as ListingCondition | 'All')}
+        />
+        <Select
+          options={[
+            { value: 'All', label: 'All Status' },
+            { value: 'available', label: 'Available' },
+            { value: 'in_pending_trade', label: 'Negotiated' },
+          ]}
+          value={status}
+          onChange={e => setStatus(e.target.value as 'All' | 'available' | 'in_pending_trade')}
         />
       </div>
 
@@ -83,7 +116,16 @@ const BrowseMarketplacePage: React.FC = () => {
           {filtered.map(l => (
             <button key={l.id} onClick={() => navigate(`${BASE}/browse/${l.id}`)} className="text-left">
               <Card className="overflow-hidden hover:border-line-hover transition-colors h-full flex flex-col">
-                <ItemThumb icon={l.category} size="lg" />
+                <div className="relative">
+                  <div className={l.status === 'in_pending_trade' ? 'opacity-50' : ''}>
+                    <ItemThumb icon={l.category} imageUrl={l.images[0]?.imageUrl} size="lg" />
+                  </div>
+                  {l.status === 'in_pending_trade' && (
+                    <span className="absolute top-2 left-2 text-[9px]/[1.45] nx-uppercase font-semibold px-1.5 py-0.5 rounded bg-bg-secondary/90 text-amber border border-amber/40">
+                      In Pending Deal
+                    </span>
+                  )}
+                </div>
                 <div className="p-3.5 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-fg mb-2 line-clamp-1">{l.title}</div>
                   <div className="flex items-center gap-1.5 mb-3">

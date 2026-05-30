@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useApp } from '../../../shared/hooks/useApp';
 import Icon from '../../../shared/components/Icon';
 import Button from '../../../shared/components/Button';
 import EmptyState from '../../../shared/components/EmptyState';
@@ -21,12 +22,14 @@ const WorldTag: React.FC<{ name: string; color: string }> = ({ name, color }) =>
 const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { flash } = useApp();
 
   const [listing, setListing] = useState<ListingResponse | null>(null);
   const [isOwnListing, setIsOwnListing] = useState(false);
   const [hasAvailableItems, setHasAvailableItems] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [flagged, setFlagged] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -54,7 +57,7 @@ const ListingDetailPage: React.FC = () => {
       </button>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <ItemThumb icon={l.category} size="lg" />
+          <ItemThumb icon={l.category} imageUrl={l.images[0]?.imageUrl} size="lg" />
           <div className="grid grid-cols-4 gap-2 mt-2">
             {l.images.slice(0, 4).map((img, i) => (
               <div key={img.id ?? i} className="aspect-square bg-bg-input border border-line rounded overflow-hidden">
@@ -82,9 +85,13 @@ const ListingDetailPage: React.FC = () => {
             <span className="text-sm text-fg font-medium">{l.user.name}</span>
             <WorldTag name={l.user.world.name} color={l.user.world.colorHex} />
           </div>
-          {l.status !== 'available'
+          {l.status === 'in_pending_trade'
+            ? <div className="bg-amber-dim border border-amber/40 rounded p-4">
+                <p className="text-sm text-amber">This item is currently being negotiated in a trade.</p>
+              </div>
+            : l.status !== 'available'
             ? <div className="bg-bg-tertiary border border-line rounded p-4">
-                <p className="text-sm text-fg-secondary">This listing is no longer available.</p>
+                <p className="text-sm text-fg-secondary">This item has already been traded.</p>
               </div>
             : isOwnListing
               ? <div className="bg-bg-tertiary border border-line rounded p-4">
@@ -97,8 +104,12 @@ const ListingDetailPage: React.FC = () => {
                     <Button variant="primary" icon="plus" onClick={() => navigate(`${BASE}/post`)}>Post Your First Item</Button>
                   </div>}
           <div className="mt-4">
-            <button className="text-[12px]/[1.45] font-mono text-fg-muted hover:text-fg-secondary nx-uppercase flex items-center gap-1.5">
-              <Icon name="flag" size={13} />Flag Listing
+            <button
+              disabled={flagged}
+              onClick={() => { setFlagged(true); flash('Listing flagged for review'); }}
+              className="text-[12px]/[1.45] font-mono text-fg-muted hover:text-fg-secondary nx-uppercase flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-default"
+            >
+              <Icon name="flag" size={13} />{flagged ? 'Flagged for Review' : 'Flag Listing'}
             </button>
           </div>
         </div>
