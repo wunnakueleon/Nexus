@@ -2,6 +2,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { resourceModel } from '../models/resource.model';
 import { updateStocksSchema } from '../schemas/resource.schema';
 
+type WorldIdParams = { worldId: string };
+
 export const resourceController = {
   getAll: async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -12,7 +14,7 @@ export const resourceController = {
     }
   },
 
-  getByWorld: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getByWorld: async (req: Request<WorldIdParams>, res: Response, next: NextFunction): Promise<void> => {
     try {
       const worldId = parseInt(req.params.worldId, 10);
       if (isNaN(worldId)) {
@@ -26,7 +28,7 @@ export const resourceController = {
     }
   },
 
-  update: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  update: async (req: Request<WorldIdParams>, res: Response, next: NextFunction): Promise<void> => {
     try {
       const worldId = parseInt(req.params.worldId, 10);
       if (isNaN(worldId)) {
