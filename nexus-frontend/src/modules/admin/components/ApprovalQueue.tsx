@@ -24,6 +24,8 @@ const ROLE_LABELS: Record<string, string> = {
   commercial_citizen: "Commercial Citizen",
 };
 
+const ROLE_FILTERS = ['Resource Manager', 'Transit Officer', 'Commercial Citizen'];
+
 const WORLD_NAME_TO_ID: Record<string, string> = {
   GloriaVenus: "GLV",
   NanPtune: "NPT",
@@ -180,13 +182,21 @@ const ApprovalQueue: React.FC = () => {
 
       <SectionLabel>Resolution History</SectionLabel>
       <Card>
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-line flex-wrap">
-          <Field label="Search">
-            <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search applicant" />
-          </Field>
-          <Select options={['All', ...worlds.map(w => ({ value: String(w.id), label: w.name }))]} value={fWorld} onChange={e => setFWorld(e.target.value)} />
-          <Select options={['All', ...Object.values(ROLE_LABELS)]} value={fRole} onChange={e => setFRole(e.target.value)} />
-          <Select options={['All', 'Approved', 'Rejected']} value={fStatus} onChange={e => setFStatus(e.target.value)} />
+        <div className="px-4 py-3 border-b border-line">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+            <Field label="Search">
+              <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search applicant" />
+            </Field>
+            <Field label="World">
+              <Select options={['All', ...worlds.map(w => ({ value: String(w.id), label: w.name }))]} value={fWorld} onChange={e => setFWorld(e.target.value)} />
+            </Field>
+            <Field label="Role">
+              <Select options={['All', ...ROLE_FILTERS]} value={fRole} onChange={e => setFRole(e.target.value)} />
+            </Field>
+            <Field label="Status">
+              <Select options={['All', 'Approved', 'Rejected']} value={fStatus} onChange={e => setFStatus(e.target.value)} />
+            </Field>
+          </div>
         </div>
         <div className="px-3 pb-1">
           {historyLoading
