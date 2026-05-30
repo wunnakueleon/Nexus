@@ -1,11 +1,10 @@
-// Enums mirror the Prisma enum values from the backend
 export type ListingCategory = 'tools' | 'food' | 'crafts' | 'tech' | 'clothing' | 'medicine' | 'art' | 'materials';
 export type ListingCondition = 'new_item' | 'used' | 'handmade' | 'rare';
 export type ListingStatus    = 'available' | 'in_pending_trade' | 'traded' | 'deleted';
 export type TradeOfferStatus = 'pending' | 'accepted' | 'declined' | 'withdrawn';
 
 // ---------------------------------------------------------------------------
-// Shared building blocks
+// Shared building blocks (match actual API response shapes)
 // ---------------------------------------------------------------------------
 
 export interface ImageRef {
@@ -14,21 +13,16 @@ export interface ImageRef {
   displayOrder: number;
 }
 
-// Flattened user + world as returned by the API.
-// worldColorHex corresponds to WorldInfo.color in shared.types.ts
-export interface UserWorldRef {
+export interface WorldRef {
   id: number;
   name: string;
-  worldId: number;
-  worldName: string;
-  worldColorHex: string;
+  colorHex: string;
 }
 
-export interface ListingSummary {
+export interface UserRef {
   id: number;
-  title: string;
-  category: ListingCategory;
-  primaryImageUrl: string | null;
+  name: string;
+  world: WorldRef;
 }
 
 // ---------------------------------------------------------------------------
@@ -45,18 +39,20 @@ export interface ListingResponse {
   createdAt: string;
   updatedAt: string;
   images: ImageRef[];
-  owner: UserWorldRef;
+  user: UserRef;
 }
 
 export interface TradeOfferResponse {
   id: number;
+  listingId: number;
+  offeredListingId: number;
   status: TradeOfferStatus;
   createdAt: string;
   resolvedAt: string | null;
-  listing: ListingSummary;        // seller's listing being requested
-  offeredListing: ListingSummary; // buyer's listing offered in exchange
-  buyer: UserWorldRef;
-  seller: UserWorldRef;
+  listing: ListingResponse;
+  offeredListing: ListingResponse;
+  buyer: UserRef;
+  seller: UserRef;
 }
 
 // ---------------------------------------------------------------------------

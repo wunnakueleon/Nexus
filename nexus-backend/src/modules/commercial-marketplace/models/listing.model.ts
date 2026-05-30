@@ -5,9 +5,16 @@ import type { ListingCategory, ListingCondition, ListingStatus } from "../../../
 // Reusable include — full listing detail
 // ---------------------------------------------------------------------------
 
+const safeUser = {
+  select: {
+    id: true, name: true,
+    world: { select: { id: true, name: true, colorHex: true } },
+  },
+};
+
 const listingDetail = {
   images: { orderBy: { displayOrder: "asc" as const } },
-  user: { include: { world: true } },
+  user: safeUser,
 };
 
 // ---------------------------------------------------------------------------

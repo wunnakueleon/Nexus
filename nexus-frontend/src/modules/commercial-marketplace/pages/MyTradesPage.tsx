@@ -80,9 +80,10 @@ const MyTradesPage: React.FC = () => {
     };
     fetchers[tab]()
       .then(data => {
-        if (tab === 'incoming') setIncoming(data);
-        else if (tab === 'outgoing') setOutgoing(data);
-        else setCompleted(data);
+        const safe = Array.isArray(data) ? data : [];
+        if (tab === 'incoming') setIncoming(safe);
+        else if (tab === 'outgoing') setOutgoing(safe);
+        else setCompleted(safe);
       })
       .catch(() => flash('Failed to load offers'))
       .finally(() => setLoading(false));
@@ -132,7 +133,7 @@ const MyTradesPage: React.FC = () => {
                 <Card key={o.id} className="p-4">
                   <Pair
                     leftLabel="They offer" left={o.offeredListing}
-                    leftWorld={{ name: o.buyer.worldName, color: o.buyer.worldColorHex }}
+                    leftWorld={{ name: o.buyer.world.name, color: o.buyer.world.colorHex }}
                     rightLabel="For your" right={o.listing}
                   />
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-line">
@@ -154,7 +155,7 @@ const MyTradesPage: React.FC = () => {
                   <Pair
                     leftLabel="You offered" left={o.offeredListing}
                     rightLabel="For their" right={o.listing}
-                    rightWorld={{ name: o.seller.worldName, color: o.seller.worldColorHex }}
+                    rightWorld={{ name: o.seller.world.name, color: o.seller.world.colorHex }}
                   />
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-line">
                     <StatusBadge status={STATUS_LABEL[o.status] ?? o.status} />
@@ -175,7 +176,7 @@ const MyTradesPage: React.FC = () => {
                   <div className="flex items-center gap-2 mt-4 pt-3 border-t border-line">
                     <span className="text-[12px]/[1.45] text-fg-muted nx-uppercase">Partner</span>
                     <span className="text-[13px]/[1.5] text-fg">{o.seller.name}</span>
-                    <WorldTag name={o.seller.worldName} color={o.seller.worldColorHex} />
+                    <WorldTag name={o.seller.world.name} color={o.seller.world.colorHex} />
                     <span className="text-[12px]/[1.45] font-mono text-fg-muted ml-auto">
                       {o.resolvedAt ? new Date(o.resolvedAt).toLocaleDateString() : '—'}
                     </span>

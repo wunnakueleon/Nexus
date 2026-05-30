@@ -31,7 +31,7 @@ const MyItemsPage: React.FC = () => {
   const load = () => {
     setLoading(true);
     getMyListings()
-      .then(setItems)
+      .then(data => setItems(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load your items.'))
       .finally(() => setLoading(false));
   };

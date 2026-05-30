@@ -77,7 +77,7 @@ const TradeOfferPage: React.FC = () => {
             <div>
               <div className="text-sm font-semibold text-fg">{listing.title}</div>
               <div className="mt-1">
-                <WorldTag name={listing.owner.worldName} color={listing.owner.worldColorHex} />
+                <WorldTag name={listing.user.world.name} color={listing.user.world.colorHex} />
               </div>
               <p className="text-[13px]/[1.5] text-fg-secondary mt-2">{listing.description}</p>
             </div>

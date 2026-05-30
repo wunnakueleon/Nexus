@@ -23,6 +23,7 @@ const ListingDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [listing, setListing] = useState<ListingResponse | null>(null);
+  const [isOwnListing, setIsOwnListing] = useState(false);
   const [hasAvailableItems, setHasAvailableItems] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +34,8 @@ const ListingDetailPage: React.FC = () => {
     Promise.all([getListingById(Number(id)), getMyListings()])
       .then(([l, mine]) => {
         setListing(l);
+        const myUserId = mine[0]?.user.id ?? null;
+        setIsOwnListing(myUserId !== null && myUserId === l.user.id);
         setHasAvailableItems(mine.some(i => i.status === 'available'));
       })
       .catch(() => setError('Failed to load listing.'))
@@ -76,19 +79,23 @@ const ListingDetailPage: React.FC = () => {
           <p className="text-sm text-fg leading-relaxed mb-5">{l.description}</p>
           <div className="flex items-center gap-2 mb-6 pb-6 border-b border-line">
             <span className="text-[12px]/[1.45] text-fg-muted nx-uppercase">Seller</span>
-            <span className="text-sm text-fg font-medium">{l.owner.name}</span>
-            <WorldTag name={l.owner.worldName} color={l.owner.worldColorHex} />
+            <span className="text-sm text-fg font-medium">{l.user.name}</span>
+            <WorldTag name={l.user.world.name} color={l.user.world.colorHex} />
           </div>
           {l.status !== 'available'
             ? <div className="bg-bg-tertiary border border-line rounded p-4">
                 <p className="text-sm text-fg-secondary">This listing is no longer available.</p>
               </div>
-            : hasAvailableItems
-              ? <Button variant="solid" size="lg" icon="market" onClick={() => navigate(`${BASE}/browse/${l.id}/offer`)}>Offer a Trade</Button>
-              : <div className="bg-bg-tertiary border border-line rounded p-4">
-                  <p className="text-sm text-fg-secondary mb-3">You need to post at least one item before you can trade.</p>
-                  <Button variant="primary" icon="plus" onClick={() => navigate(`${BASE}/post`)}>Post Your First Item</Button>
-                </div>}
+            : isOwnListing
+              ? <div className="bg-bg-tertiary border border-line rounded p-4">
+                  <p className="text-sm text-fg-secondary">This is your listing.</p>
+                </div>
+              : hasAvailableItems
+                ? <Button variant="solid" size="lg" icon="market" onClick={() => navigate(`${BASE}/browse/${l.id}/offer`)}>Offer a Trade</Button>
+                : <div className="bg-bg-tertiary border border-line rounded p-4">
+                    <p className="text-sm text-fg-secondary mb-3">You need to post at least one item before you can trade.</p>
+                    <Button variant="primary" icon="plus" onClick={() => navigate(`${BASE}/post`)}>Post Your First Item</Button>
+                  </div>}
           <div className="mt-4">
             <button className="text-[12px]/[1.45] font-mono text-fg-muted hover:text-fg-secondary nx-uppercase flex items-center gap-1.5">
               <Icon name="flag" size={13} />Flag Listing

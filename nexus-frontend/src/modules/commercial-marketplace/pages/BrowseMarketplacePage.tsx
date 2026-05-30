@@ -42,7 +42,7 @@ const BrowseMarketplacePage: React.FC = () => {
       ...(worldId !== 'All' && { worldId }),
     };
     getListings(params)
-      .then(setListings)
+      .then(data => setListings(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load listings.'))
       .finally(() => setLoading(false));
   }, [cat, worldId]);
@@ -91,7 +91,7 @@ const BrowseMarketplacePage: React.FC = () => {
                     <span className="text-[10px]/[1.45] nx-uppercase font-semibold px-1.5 py-0.5 rounded bg-amber-dim text-amber">{l.condition}</span>
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-2 border-t border-line">
-                    <WorldTag name={l.owner.worldName} color={l.owner.worldColorHex} />
+                    <WorldTag name={l.user.world.name} color={l.user.world.colorHex} />
                     <span className="text-[11px]/[1.45] font-mono text-fg-muted">
                       {new Date(l.createdAt).toLocaleDateString()}
                     </span>
