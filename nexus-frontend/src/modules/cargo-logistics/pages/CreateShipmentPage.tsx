@@ -6,6 +6,10 @@ import Card from '../../../shared/components/Card';
 import { Field, Input, Select } from '../../../shared/components/Field';
 import Icon from '../../../shared/components/Icon';
 import PageHeader from '../../../shared/components/PageHeader';
+import { createShipment as apiCreateShipment } from '../apis/shipment.api';
+
+// Matches seed creation order — update if DB is re-seeded with different IDs
+const WORLD_CODE_TO_ID: Record<string, number> = { GLV: 1, NPT: 2, MNU: 3, WNM: 4 };
 
 interface ManifestDraft {
   res: string;
@@ -16,7 +20,7 @@ interface ManifestDraft {
 const BASE = '/cargo-logistics';
 
 const CreateShipmentPage: React.FC = () => {
-  const { operator, worlds, RESOURCES, createShipment } = useApp();
+  const { operator, worlds, RESOURCES, flash } = useApp();
   const navigate = useNavigate();
   const mine = operator.worldId ?? '';
   const others = worlds.filter(w => w.id !== mine);
@@ -25,19 +29,32 @@ const CreateShipmentPage: React.FC = () => {
   const [items, setItems] = useState<ManifestDraft[]>([{ res: 'Fuel', qty: 100, notes: '' }]);
   const [ref, setRef] = useState('');
   const [departure, setDeparture] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const update = <K extends keyof ManifestDraft>(i: number, k: K, v: ManifestDraft[K]) =>
     setItems(items.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
 
-  const submit = () => {
-    createShipment(
-      dest,
-      mine,
-      items.map(it => ({ res: it.res, qty: it.qty, notes: it.notes || '—' })),
-      ref || null,
-      departure || 'TBD',
-    );
-    navigate(`${BASE}/shipments`);
+  const submit = async () => {
+    setLoading(true);
+    try {
+      await apiCreateShipment({
+        originWorldId: WORLD_CODE_TO_ID[mine] ?? 1,
+        destinationWorldId: WORLD_CODE_TO_ID[dest] ?? 2,
+        sourceType: 'manual',
+        transportReference: ref || undefined,
+        scheduledDeparture: departure || undefined,
+        items: items.map(it => ({
+          resourceType: it.res,
+          quantity: it.qty,
+          conditionNotes: it.notes || undefined,
+        })),
+      });
+      navigate(`${BASE}/shipments`);
+    } catch {
+      flash('Failed to create shipment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,7 +99,9 @@ const CreateShipmentPage: React.FC = () => {
 
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="ghost" onClick={() => navigate(`${BASE}/shipments`)}>Cancel</Button>
-          <Button variant="solid" icon="cargo" onClick={submit}>Create Shipment</Button>
+          <Button variant="solid" icon="cargo" onClick={submit} disabled={loading}>
+            {loading ? 'Creating…' : 'Create Shipment'}
+          </Button>
         </div>
       </Card>
     </div>

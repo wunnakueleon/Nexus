@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../../../shared/hooks/useApp';
 import Button from '../../../shared/components/Button';
@@ -13,21 +13,112 @@ import StatusBadge from '../../../shared/components/StatusBadge';
 import { Table, Td } from '../../../shared/components/Table';
 import WorldBadge from '../../../shared/components/WorldBadge';
 import type { Shipment } from '../../../shared/types/shared.types';
+import {
+  addFlag as apiAddFlag,
+  advanceShipment as apiAdvance,
+  deliverShipment as apiDeliver,
+  getShipment,
+} from '../apis/shipment.api';
+import type { ShipmentDetail } from '../types/cargo-logistics.types';
+
+// Matches seed creation order — update if DB is re-seeded with different IDs
+const WORLD_BY_ID: Record<number, string> = { 1: 'GLV', 2: 'NPT', 3: 'MNU', 4: 'WNM' };
+
+const STATUS_LABEL: Record<string, string> = {
+  preparing: 'Preparing', departed: 'Departed', in_transit: 'In Transit',
+  delivered: 'Delivered', delayed: 'Delayed', cancelled: 'Cancelled',
+};
+
+const DISPLAY_STEPS = ['Created', 'Preparing', 'Departed', 'In Transit', 'Delivered'];
+const API_STEPS     = ['',        'preparing', 'departed', 'in_transit', 'delivered'];
+
+// Carries the human-readable shipmentCode alongside the numeric id used for routing
+type DetailView = Shipment & { code: string };
+
+function adaptDetail(s: ShipmentDetail): DetailView {
+  const tsByStatus: Record<string, string> = {};
+  for (const t of s.timeline) tsByStatus[t.status] = t.timestamp;
+  const curIdx = Math.max(API_STEPS.indexOf(s.status), 0);
+
+  return {
+    id: String(s.id),
+    code: s.shipmentCode,
+    origin: WORLD_BY_ID[s.originWorldId] ?? String(s.originWorldId),
+    dest: WORLD_BY_ID[s.destinationWorldId] ?? String(s.destinationWorldId),
+    status: STATUS_LABEL[s.status] ?? s.status,
+    departure: s.scheduledDeparture ?? 'TBD',
+    eta: s.estimatedArrival ?? 'TBD',
+    flagged: s.flags.length > 0,
+    manifest: s.items.map(i => ({ res: i.resourceType, qty: i.quantity, notes: i.conditionNotes ?? '' })),
+    timeline: DISPLAY_STEPS.map((step, i) => ({
+      step,
+      ts: tsByStatus[API_STEPS[i]] ?? null,
+      done: i < curIdx,
+      current: i === curIdx,
+    })),
+    flags: s.flags.map(f => ({
+      desc: f.description,
+      ts: new Date(f.createdAt).toLocaleString(),
+      by: `Officer #${f.reportedByUserId}`,
+    })),
+    ref: s.tradeRequestId ? String(s.tradeRequestId) : null,
+  };
+}
 
 const dirOf = (sh: Shipment, mine: string) => sh.origin === mine ? 'OUTBOUND' : 'INBOUND';
 const BASE = '/cargo-logistics';
 
 const ShipmentDetailPage: React.FC = () => {
-  const { shipments, operator, advanceShipment, confirmDelivery, addFlag } = useApp();
+  const { operator, flash } = useApp();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const mine = operator.worldId ?? '';
-  const s = shipments.find(x => x.id === id);
+  const [shipment, setShipment] = useState<DetailView | null>(null);
   const [flagOpen, setFlagOpen] = useState(false);
   const [flagText, setFlagText] = useState('');
 
-  if (!s) return <EmptyState icon="cargo" text="Shipment not found." />;
-  const dir = dirOf(s, mine);
+  const numericId = Number(id);
+  const isApiId = Number.isInteger(numericId) && numericId > 0;
+
+  useEffect(() => {
+    if (!isApiId) return;
+    let cancelled = false;
+    getShipment(numericId)
+      .then(data => { if (!cancelled) setShipment(adaptDetail(data)); })
+      .catch(() => { if (!cancelled) setShipment(null); });
+    return () => { cancelled = true; };
+  }, [isApiId, numericId]);
+
+  const handleAdvance = async () => {
+    try {
+      setShipment(adaptDetail(await apiAdvance(numericId)));
+    } catch {
+      flash('Failed to advance shipment status.');
+    }
+  };
+
+  const handleDeliver = async () => {
+    try {
+      setShipment(adaptDetail(await apiDeliver(numericId)));
+    } catch {
+      flash('Failed to confirm delivery.');
+    }
+  };
+
+  const handleFlag = async () => {
+    if (!flagText.trim()) return;
+    try {
+      await apiAddFlag(numericId, { flagType: 'other', description: flagText.trim() });
+      setShipment(adaptDetail(await getShipment(numericId)));
+      setFlagOpen(false);
+      setFlagText('');
+    } catch {
+      flash('Failed to record flag.');
+    }
+  };
+
+  if (!shipment) return <EmptyState icon="cargo" text="Shipment not found." />;
+  const dir = dirOf(shipment, mine);
   const outbound = dir === 'OUTBOUND';
 
   return (
@@ -39,19 +130,19 @@ const ShipmentDetailPage: React.FC = () => {
 
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-mono font-semibold text-fg">{s.id}</h1>
-          <StatusBadge status={s.status} pulse={s.status === 'Delayed'} />
+          <h1 className="text-2xl font-mono font-semibold text-fg">{shipment.code}</h1>
+          <StatusBadge status={shipment.status} pulse={shipment.status === 'Delayed'} />
           <StatusBadge status={dir} />
         </div>
         <div className="flex gap-2">
           {outbound ? (
             <>
-              <Button variant="primary" icon="arrow" disabled={s.status === 'Delivered'} onClick={() => advanceShipment(s.id)}>Advance Status</Button>
+              <Button variant="primary" icon="arrow" disabled={shipment.status === 'Delivered'} onClick={handleAdvance}>Advance Status</Button>
               <Button variant="danger" icon="flag" onClick={() => setFlagOpen(true)}>Add Flag</Button>
             </>
           ) : (
             <>
-              <Button variant="solid" icon="check" disabled={s.status === 'Delivered'} onClick={() => confirmDelivery(s.id)}>Confirm Delivery</Button>
+              <Button variant="solid" icon="check" disabled={shipment.status === 'Delivered'} onClick={handleDeliver}>Confirm Delivery</Button>
               <Button variant="danger" icon="flag" onClick={() => setFlagOpen(true)}>Report Issue</Button>
             </>
           )}
@@ -60,13 +151,12 @@ const ShipmentDetailPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 space-y-3">
-          {/* Route */}
           <Card className="p-4">
             <SectionLabel>Route</SectionLabel>
             <div className="flex items-center justify-center gap-4 py-2">
               <div className="text-center">
-                <WorldBadge worldId={s.origin} />
-                <div className="text-[11px]/[1.45] font-mono text-fg-muted mt-2">Depart {s.departure}</div>
+                <WorldBadge worldId={shipment.origin} />
+                <div className="text-[11px]/[1.45] font-mono text-fg-muted mt-2">Depart {shipment.departure}</div>
               </div>
               <div className="flex-1 max-w-[180px] flex items-center">
                 <span className="flex-1 h-px bg-line-hover" />
@@ -74,17 +164,16 @@ const ShipmentDetailPage: React.FC = () => {
                 <span className="flex-1 h-px bg-line-hover" />
               </div>
               <div className="text-center">
-                <WorldBadge worldId={s.dest} />
-                <div className="text-[11px]/[1.45] font-mono text-fg-muted mt-2">ETA {s.eta}</div>
+                <WorldBadge worldId={shipment.dest} />
+                <div className="text-[11px]/[1.45] font-mono text-fg-muted mt-2">ETA {shipment.eta}</div>
               </div>
             </div>
           </Card>
 
-          {/* Manifest */}
           <Card className="p-4">
             <SectionLabel>Manifest</SectionLabel>
             <Table headers={['Resource', { label: 'Quantity', align: 'right' }, 'Condition Notes']}>
-              {s.manifest.map((m, i) => (
+              {shipment.manifest.map((m, i) => (
                 <tr key={i} className="border-b border-line last:border-0">
                   <Td className="text-fg">{m.res}</Td>
                   <Td mono align="right" className="text-fg">{m.qty.toLocaleString()}</Td>
@@ -94,13 +183,12 @@ const ShipmentDetailPage: React.FC = () => {
             </Table>
           </Card>
 
-          {/* Flags */}
           <Card className="p-4">
             <SectionLabel>Flags</SectionLabel>
-            {s.flags.length === 0
+            {shipment.flags.length === 0
               ? <p className="text-sm text-fg-muted">No issues reported.</p>
               : <div className="space-y-2">
-                {s.flags.map((f, i) => (
+                {shipment.flags.map((f, i) => (
                   <div key={i} className="flex gap-3 bg-critical-dim border border-critical/30 rounded p-3">
                     <Icon name="flag" size={15} className="text-critical shrink-0 mt-0.5" />
                     <div>
@@ -113,17 +201,15 @@ const ShipmentDetailPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Timeline */}
         <Card className="p-4 h-fit">
           <SectionLabel>Status Timeline</SectionLabel>
           <div className="relative">
-            {s.timeline.map((t, i) => (
+            {shipment.timeline.map((t, i) => (
               <div key={t.step} className="flex gap-3 pb-5 last:pb-0 relative">
-                {i < s.timeline.length - 1 && (
+                {i < shipment.timeline.length - 1 && (
                   <span className="absolute left-[5px] top-3 bottom-0 w-px" style={{ background: t.done ? '#D4890A' : '#2A3040' }} />
                 )}
-                <span className={`w-[11px] h-[11px] rounded-sm shrink-0 mt-1 relative z-10 ${t.done ? 'bg-amber' : t.current ? 'bg-amber animate-pulse-dot' : 'border border-line bg-bg-secondary'
-                  }`} />
+                <span className={`w-[11px] h-[11px] rounded-sm shrink-0 mt-1 relative z-10 ${t.done ? 'bg-amber' : t.current ? 'bg-amber animate-pulse-dot' : 'border border-line bg-bg-secondary'}`} />
                 <div>
                   <div className={`text-[13px]/[1.5] ${t.done || t.current ? 'text-fg' : 'text-fg-muted'} ${t.current ? 'font-bold' : ''}`}>{t.step}</div>
                   <div className="text-[11px]/[1.45] font-mono text-fg-muted">{t.ts ?? '—'}</div>
@@ -141,12 +227,7 @@ const ShipmentDetailPage: React.FC = () => {
           footer={
             <>
               <Button variant="ghost" onClick={() => setFlagOpen(false)}>Cancel</Button>
-              <Button variant="danger" disabled={!flagText.trim()}
-                onClick={() => {
-                  addFlag(s.id, flagText.trim(), `${mine} Transit`);
-                  setFlagOpen(false);
-                  setFlagText('');
-                }}>
+              <Button variant="danger" disabled={!flagText.trim()} onClick={handleFlag}>
                 Record Flag
               </Button>
             </>

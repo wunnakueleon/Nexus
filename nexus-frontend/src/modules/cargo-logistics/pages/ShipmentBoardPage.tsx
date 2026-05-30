@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../shared/hooks/useApp';
 import Card from '../../../shared/components/Card';
@@ -9,16 +9,55 @@ import StatusBadge from '../../../shared/components/StatusBadge';
 import { Table, Td } from '../../../shared/components/Table';
 import WorldBadge from '../../../shared/components/WorldBadge';
 import type { Shipment } from '../../../shared/types/shared.types';
+import { getShipments } from '../apis/shipment.api';
+import type { ShipmentSummary } from '../types/cargo-logistics.types';
+
+// Matches seed creation order — update if DB is re-seeded with different IDs
+const WORLD_BY_ID: Record<number, string> = { 1: 'GLV', 2: 'NPT', 3: 'MNU', 4: 'WNM' };
+
+const STATUS_LABEL: Record<string, string> = {
+  preparing: 'Preparing', departed: 'Departed', in_transit: 'In Transit',
+  delivered: 'Delivered', delayed: 'Delayed', cancelled: 'Cancelled',
+};
+
+// Carries the human-readable shipmentCode alongside the numeric id used for routing
+type BoardRow = Shipment & { code: string };
+
+function adaptSummary(s: ShipmentSummary): BoardRow {
+  return {
+    id: String(s.id),
+    code: s.shipmentCode,
+    origin: WORLD_BY_ID[s.originWorldId] ?? String(s.originWorldId),
+    dest: WORLD_BY_ID[s.destinationWorldId] ?? String(s.destinationWorldId),
+    status: STATUS_LABEL[s.status] ?? s.status,
+    departure: s.scheduledDeparture ?? 'TBD',
+    eta: s.estimatedArrival ?? 'TBD',
+    flagged: false,
+    manifest: [],
+    timeline: [],
+    flags: [],
+    ref: null,
+  };
+}
 
 const SHIP_STATUSES = ['All', 'Preparing', 'Departed', 'In Transit', 'Delivered', 'Delayed'];
 const dirOf = (sh: Shipment, mine: string) => sh.origin === mine ? 'OUTBOUND' : 'INBOUND';
 const BASE = '/cargo-logistics';
 
 const ShipmentBoardPage: React.FC = () => {
-  const { shipments, operator } = useApp();
+  const { operator } = useApp();
   const navigate = useNavigate();
   const mine = operator.worldId ?? '';
   const [filter, setFilter] = useState('All');
+  const [shipments, setShipments] = useState<BoardRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getShipments()
+      .then(data => { if (!cancelled) setShipments(data.map(adaptSummary)); })
+      .catch(() => { if (!cancelled) setShipments([]); });
+    return () => { cancelled = true; };
+  }, []);
 
   const list = shipments.filter(s =>
     (s.origin === mine || s.dest === mine) &&
@@ -44,7 +83,7 @@ const ShipmentBoardPage: React.FC = () => {
               {list.map(s => (
                 <tr key={s.id} onClick={() => navigate(`${BASE}/shipments/${s.id}`)}
                   className="border-b border-line last:border-0 hover:bg-bg-tertiary/50 cursor-pointer">
-                  <Td mono className="text-fg font-medium">{s.id}</Td>
+                  <Td mono className="text-fg font-medium">{s.code}</Td>
                   <Td><StatusBadge status={dirOf(s, mine)} /></Td>
                   <Td>
                     <div className="flex items-center gap-1.5">

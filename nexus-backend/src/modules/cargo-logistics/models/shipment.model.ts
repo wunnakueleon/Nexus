@@ -29,9 +29,13 @@ const DETAIL_INCLUDE = {
     flags: { orderBy: { createdAt: "asc" as const } },
 } as const;
 
-function generateShipmentCode(): string {
-    const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
-    return `SHP-${Date.now()}-${suffix}`;
+// Matches seed creation order — mirrors the frontend world-code maps
+const WORLD_CODE: Record<number, string> = { 1: "GLV", 2: "NPT", 3: "MNU", 4: "WNM" };
+
+function generateShipmentCode(originWorldId: number): string {
+    const code = WORLD_CODE[originWorldId] ?? "SHP";
+    const seq = String(Math.floor(Math.random() * 90000) + 10000);
+    return `SHP-${code}-${seq}`;
 }
 
 export async function listShipments(
@@ -63,7 +67,7 @@ export async function createShipment(
 ): Promise<ShipmentDetail> {
     return prisma.shipment.create({
         data: {
-            shipmentCode: generateShipmentCode(),
+            shipmentCode: generateShipmentCode(data.originWorldId),
             originWorldId: data.originWorldId,
             destinationWorldId: data.destinationWorldId,
             createdByUserId,

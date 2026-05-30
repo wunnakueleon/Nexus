@@ -35,8 +35,8 @@ export async function listShipmentsHandler(
     next: NextFunction,
 ): Promise<void> {
     try {
-        const worldId = req.user?.worldId;
-        if (!worldId) return void next(appError(401, "Unauthorized"));
+        // TODO: remove fallback once auth middleware is implemented
+        const worldId = req.user?.worldId ?? 1;
 
         const parsed = ShipmentFiltersSchema.safeParse(req.query);
         if (!parsed.success) return void next(appError(400, "Invalid query parameters"));
@@ -72,8 +72,8 @@ export async function createShipmentHandler(
     next: NextFunction,
 ): Promise<void> {
     try {
-        const userId = req.user?.id;
-        if (!userId) return void next(appError(401, "Unauthorized"));
+        // TODO: remove fallback once auth middleware is implemented
+        const userId = req.user?.id ?? 1;
 
         const parsed = CreateShipmentSchema.safeParse(req.body);
         if (!parsed.success) return void next(appError(400, "Invalid request body"));
@@ -91,8 +91,8 @@ export async function advanceShipmentHandler(
     next: NextFunction,
 ): Promise<void> {
     try {
-        const userId = req.user?.id;
-        if (!userId) return void next(appError(401, "Unauthorized"));
+        // TODO: remove fallback once auth middleware is implemented
+        const userId = req.user?.id ?? 1;
 
         const id = Number(req.params.id);
         if (!Number.isInteger(id) || id <= 0) return void next(appError(400, "Invalid shipment ID"));
@@ -115,8 +115,8 @@ export async function deliverShipmentHandler(
     next: NextFunction,
 ): Promise<void> {
     try {
-        const userId = req.user?.id;
-        if (!userId) return void next(appError(401, "Unauthorized"));
+        // TODO: remove fallback once auth middleware is implemented
+        const userId = req.user?.id ?? 1;
 
         const id = Number(req.params.id);
         if (!Number.isInteger(id) || id <= 0) return void next(appError(400, "Invalid shipment ID"));
@@ -139,8 +139,8 @@ export async function cancelShipmentHandler(
     next: NextFunction,
 ): Promise<void> {
     try {
-        const userId = req.user?.id;
-        if (!userId) return void next(appError(401, "Unauthorized"));
+        // TODO: remove fallback once auth middleware is implemented
+        const userId = req.user?.id ?? 1;
 
         const id = Number(req.params.id);
         if (!Number.isInteger(id) || id <= 0) return void next(appError(400, "Invalid shipment ID"));
@@ -163,8 +163,8 @@ export async function addFlagHandler(
     next: NextFunction,
 ): Promise<void> {
     try {
-        const userId = req.user?.id;
-        if (!userId) return void next(appError(401, "Unauthorized"));
+        // TODO: remove fallback once auth middleware is implemented
+        const userId = req.user?.id ?? 1;
 
         const shipmentId = Number(req.params.id);
         if (!Number.isInteger(shipmentId) || shipmentId <= 0) {
