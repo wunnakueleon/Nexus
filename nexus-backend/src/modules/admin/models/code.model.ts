@@ -48,12 +48,34 @@ export const generateAccessCodes = async (
 	const world = await prisma.world.findUnique({ where: { id: worldId } });
 	if (!world) return [];
 
-	const createList = Array.from({ length: qty }, () => ({
-		codeString: buildCodeString(world.name, role),
-		worldId,
-		role,
-		status: "available" as const,
-	}));
+	const existing = await prisma.accessCode.findMany({
+		where: { worldId, role },
+		select: { codeString: true },
+	});
+
+	const seenCodes = new Set(existing.map(row => row.codeString));
+	const createList: Array<{ codeString: string; worldId: number; role: AccessCodeRole; status: "available" }> = [];
+	const maxAttempts = Math.max(qty * 20, 50);
+	let attempts = 0;
+
+	while (createList.length < qty && attempts < maxAttempts) {
+		const candidate = buildCodeString(world.name, role);
+		attempts += 1;
+		if (seenCodes.has(candidate)) continue;
+		seenCodes.add(candidate);
+		createList.push({
+			codeString: candidate,
+			worldId,
+			role,
+			status: "available",
+		});
+	}
+
+	if (createList.length < qty) {
+		const error = new Error("Unable to generate unique access codes. Try again.") as Error & { status?: number };
+		error.status = 409;
+		throw error;
+	}
 
 	const created = await prisma.$transaction(
 		createList.map(data => prisma.accessCode.create({ data, include: { world: true, usedBy: true } })),
