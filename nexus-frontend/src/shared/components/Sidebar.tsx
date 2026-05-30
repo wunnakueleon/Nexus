@@ -13,9 +13,14 @@ interface SidebarProps {
   basePath: string;
   items: SidebarItem[];
   worldId?: string | null;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ feature, featureIcon, basePath, items, worldId }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  feature, featureIcon, basePath, items, worldId,
+  isOpen = false, onClose,
+}) => {
   const { operator, setOperator } = useApp();
   const navigate = useNavigate();
   if (!operator) return null;
@@ -26,11 +31,28 @@ const Sidebar: React.FC<SidebarProps> = ({ feature, featureIcon, basePath, items
   };
 
   return (
-    <aside className="w-60 shrink-0 bg-bg-secondary border-r border-line flex flex-col fixed inset-y-0 left-0">
-      <div className="px-5 py-5 border-b border-line">
+    <aside
+      className={`
+        w-60 shrink-0 bg-bg-secondary border-r border-line flex flex-col
+        fixed inset-y-0 left-0 z-30
+        transition-transform duration-200 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}
+    >
+      {/* Header */}
+      <div className="px-5 py-5 border-b border-line flex items-center justify-between">
         <Wordmark />
+        {/* Close button — mobile only */}
+        <button
+          onClick={onClose}
+          className="md:hidden text-fg-secondary hover:text-fg p-1 rounded"
+          aria-label="Close menu"
+        >
+          <Icon name="x" size={18} />
+        </button>
       </div>
 
+      {/* Feature + world */}
       <div className="px-5 py-4 border-b border-line">
         <div className="flex items-center gap-2 text-amber">
           <Icon name={featureIcon} size={16} />
@@ -43,12 +65,14 @@ const Sidebar: React.FC<SidebarProps> = ({ feature, featureIcon, basePath, items
         )}
       </div>
 
+      {/* Nav items */}
       <nav className="flex-1 py-3 overflow-y-auto">
         {items.map(item => (
           <NavLink
             key={item.id}
             to={`${basePath}/${item.path}`}
             end={item.end ?? false}
+            onClick={onClose}
             className={({ isActive }) =>
               `w-full flex items-center gap-3 px-5 py-2.5 text-[12px]/[1.45] font-medium nx-uppercase transition-colors relative ${
                 isActive
@@ -68,6 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({ feature, featureIcon, basePath, items
         ))}
       </nav>
 
+      {/* Footer */}
       <div className="px-5 py-4 border-t border-line">
         <div className="text-[12px]/[1.45] font-semibold text-fg">{operator.name}</div>
         <div className="text-[11px]/[1.45] text-fg-muted font-mono mb-3">{operator.role}</div>
