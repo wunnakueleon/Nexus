@@ -18,10 +18,9 @@ import WorldBadge from '../../../shared/components/WorldBadge';
 import LoadingState from '../../../shared/components/LoadingState';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const fmtDate = (iso: string) => new Date(iso).toLocaleString();
+const fmtDate = (iso: string) => new Date(iso).toLocaleDateString();
+const fmtDateTime = (iso: string) => new Date(iso).toLocaleString();
 
-// ---- helpers ----------------------------------------------------------------
-// Map a DB world name back to the frontend string ID used by WorldBadge
 const nameToFrontendId = (name: string, worlds: { id: string; name: string }[]) =>
   worlds.find(w => w.name === name)?.id ?? name;
 
@@ -81,17 +80,19 @@ const RespondModal: React.FC<RespondModalProps> = ({ trade, action, onClose, onD
 
 // ---- TradeBody --------------------------------------------------------------
 const TradeBody: React.FC<{ trade: TradeRequestRow }> = ({ trade }) => (
-  <div className="grid grid-cols-2 gap-3 mb-3">
-    <div className="bg-bg-input border border-line rounded p-3">
+  <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
+    <div className="bg-bg-input border border-line rounded p-2 sm:p-3">
       <div className="text-[11px]/[1.45] nx-uppercase text-fg-muted mb-1">They want</div>
-      <div className="font-mono text-sm text-fg">
-        {trade.quantityWanted.toLocaleString()} <span className="text-fg-secondary capitalize">{trade.resourceWanted}</span>
+      <div className="font-mono text-xs sm:text-sm text-fg">
+        {trade.quantityWanted.toLocaleString()}{' '}
+        <span className="text-fg-secondary capitalize">{trade.resourceWanted}</span>
       </div>
     </div>
-    <div className="bg-bg-input border border-line rounded p-3">
+    <div className="bg-bg-input border border-line rounded p-2 sm:p-3">
       <div className="text-[11px]/[1.45] nx-uppercase text-fg-muted mb-1">They offer</div>
-      <div className="font-mono text-sm text-fg">
-        {trade.quantityOffered.toLocaleString()} <span className="text-fg-secondary capitalize">{trade.resourceOffered}</span>
+      <div className="font-mono text-xs sm:text-sm text-fg">
+        {trade.quantityOffered.toLocaleString()}{' '}
+        <span className="text-fg-secondary capitalize">{trade.resourceOffered}</span>
       </div>
     </div>
   </div>
@@ -104,25 +105,23 @@ const TradeDashboardPage: React.FC = () => {
   const { worlds, worldById, operator } = useApp();
   const navigate = useNavigate();
 
-  const [trades, setTrades]           = useState<TradeRequestRow[]>([]);
-  const [myDbId, setMyDbId]           = useState<number | null>(null);
-  const [loading, setLoading]         = useState(true);
-  const [tab, setTab]                 = useState('incoming');
-  const [modal, setModal]             = useState<TradeModal | null>(null);
+  const [trades, setTrades]   = useState<TradeRequestRow[]>([]);
+  const [myDbId, setMyDbId]   = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab]         = useState('incoming');
+  const [modal, setModal]     = useState<TradeModal | null>(null);
 
   const myWorldName = operator?.worldId ? worldById(operator.worldId).name : null;
 
   const fetchAll = useCallback(async () => {
     try {
-      // Resolve own DB world id from resources
       const resRes = await resourceApi.getAll();
       const myRow  = (resRes.data.data ?? []).find(r => r.world.name === myWorldName);
       const dbId   = myRow?.worldId ?? null;
       setMyDbId(dbId);
-
       if (dbId) {
         const tradeRes = await tradeApi.getByWorld(dbId);
-        setTrades(tradeRes.data.data);
+        setTrades(tradeRes.data.data ?? []);
       }
     } finally {
       setLoading(false);
@@ -131,27 +130,20 @@ const TradeDashboardPage: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const incoming = useMemo(() => trades.filter(t => t.toWorldId === myDbId   && t.status === 'pending'),  [trades, myDbId]);
-  const outgoing = useMemo(() => trades.filter(t => t.fromWorldId === myDbId),                            [trades, myDbId]);
-  const active   = useMemo(() => trades.filter(t => (t.fromWorldId === myDbId || t.toWorldId === myDbId) && t.status === 'accepted'),  [trades, myDbId]);
-  const history  = useMemo(() => trades.filter(t => (t.fromWorldId === myDbId || t.toWorldId === myDbId) && ['declined','fulfilled','cancelled'].includes(t.status)), [trades, myDbId]);
+  const incoming = useMemo(() => trades.filter(t => t.toWorldId === myDbId && t.status === 'pending'), [trades, myDbId]);
+  const outgoing = useMemo(() => trades.filter(t => t.fromWorldId === myDbId), [trades, myDbId]);
+  const active   = useMemo(() => trades.filter(t => (t.fromWorldId === myDbId || t.toWorldId === myDbId) && t.status === 'accepted'), [trades, myDbId]);
+  const history  = useMemo(() => trades.filter(t => (t.fromWorldId === myDbId || t.toWorldId === myDbId) && ['declined', 'fulfilled', 'cancelled'].includes(t.status)), [trades, myDbId]);
 
   const tabs = [
     { id: 'incoming', label: 'Incoming',      count: incoming.length },
     { id: 'outgoing', label: 'Outgoing',      count: outgoing.length },
-    { id: 'active',   label: 'Active Trades', count: active.length },
+    { id: 'active',   label: 'Active',        count: active.length },
     { id: 'history',  label: 'History',       count: history.length },
   ];
 
-  const cancel = async (id: number) => {
-    await tradeApi.cancel(id);
-    fetchAll();
-  };
-
-  const fulfill = async (id: number) => {
-    await tradeApi.fulfill(id);
-    fetchAll();
-  };
+  const cancel  = async (id: number) => { await tradeApi.cancel(id);  fetchAll(); };
+  const fulfill = async (id: number) => { await tradeApi.fulfill(id); fetchAll(); };
 
   if (loading) return <LoadingState />;
 
@@ -162,12 +154,15 @@ const TradeDashboardPage: React.FC = () => {
         sub="Resource exchange requests to and from your world."
         actions={
           <Button variant="primary" icon="plus" onClick={() => navigate('/resource-exchange/trade/new')}>
-            New Request
+            <span className="hidden sm:inline">New Request</span>
+            <span className="sm:hidden">New</span>
           </Button>
         }
       />
+
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
-      <div className="mt-5">
+
+      <div className="mt-4 sm:mt-5">
 
         {/* Incoming */}
         {tab === 'incoming' && (
@@ -175,20 +170,22 @@ const TradeDashboardPage: React.FC = () => {
             ? <Card><EmptyState icon="resource" text="No incoming requests." /></Card>
             : <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {incoming.map(t => (
-                  <Card key={t.id} className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 text-sm">
+                  <Card key={t.id} className="p-3 sm:p-4">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2 text-sm min-w-0 flex-wrap">
                         <WorldBadge worldId={nameToFrontendId(t.fromWorld.name, worlds)} size="sm" />
-                        <span className="text-fg-muted">requests from you</span>
+                        <span className="text-fg-muted text-xs">requests from you</span>
                       </div>
                       <StatusBadge status={cap(t.urgency)} pulse={t.urgency === 'critical'} />
                     </div>
                     <TradeBody trade={t} />
                     {t.requestComment && (
-                      <p className="text-[13px]/[1.5] text-fg-secondary italic border-l-2 border-line pl-3 mb-3">"{t.requestComment}"</p>
+                      <p className="text-[13px]/[1.5] text-fg-secondary italic border-l-2 border-line pl-3 mb-3">
+                        "{t.requestComment}"
+                      </p>
                     )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px]/[1.45] font-mono text-fg-muted">{fmtDate(t.createdAt)}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-[12px]/[1.45] font-mono text-fg-muted">{fmtDateTime(t.createdAt)}</span>
                       <div className="flex gap-2">
                         <Button size="sm" variant="primary" icon="check" onClick={() => setModal({ trade: t, action: 'accept' })}>Accept</Button>
                         <Button size="sm" variant="ghost" onClick={() => setModal({ trade: t, action: 'decline' })}>Decline</Button>
@@ -205,23 +202,23 @@ const TradeDashboardPage: React.FC = () => {
             ? <Card><EmptyState icon="resource" text="No outgoing requests." /></Card>
             : <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {outgoing.map(t => (
-                  <Card key={t.id} className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-fg-muted">request to</span>
+                  <Card key={t.id} className="p-3 sm:p-4">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2 text-sm min-w-0 flex-wrap">
+                        <span className="text-fg-muted text-xs">request to</span>
                         <WorldBadge worldId={nameToFrontendId(t.toWorld.name, worlds)} size="sm" />
                       </div>
                       <StatusBadge status={cap(t.status)} />
                     </div>
                     <TradeBody trade={t} />
-                    {['accepted','declined'].includes(t.status) && t.responseComment && (
+                    {['accepted', 'declined'].includes(t.status) && t.responseComment && (
                       <p className="text-[13px]/[1.5] text-fg-secondary italic border-l-2 border-line pl-3 mb-3">
                         <span className="not-italic text-fg-muted nx-uppercase text-[10px]/[1.45] block mb-0.5">Response</span>
                         "{t.responseComment}"
                       </p>
                     )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px]/[1.45] font-mono text-fg-muted">{fmtDate(t.createdAt)}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-[12px]/[1.45] font-mono text-fg-muted">{fmtDateTime(t.createdAt)}</span>
                       {t.status === 'pending' && (
                         <Button size="sm" variant="danger" onClick={() => cancel(t.id)}>Cancel</Button>
                       )}
@@ -237,9 +234,9 @@ const TradeDashboardPage: React.FC = () => {
             ? <Card><EmptyState icon="resource" text="No active trades." /></Card>
             : <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {active.map(t => (
-                  <Card key={t.id} className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                  <Card key={t.id} className="p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                      <div className="flex items-center gap-1.5">
                         <WorldBadge worldId={nameToFrontendId(t.fromWorld.name, worlds)} size="sm" />
                         <Icon name="arrow" size={14} className="text-fg-muted" />
                         <WorldBadge worldId={nameToFrontendId(t.toWorld.name, worlds)} size="sm" />
@@ -248,11 +245,15 @@ const TradeDashboardPage: React.FC = () => {
                     </div>
                     <TradeBody trade={t} />
                     {t.responseComment && (
-                      <p className="text-[13px]/[1.5] text-fg-secondary italic border-l-2 border-line pl-3 mb-3">"{t.responseComment}"</p>
+                      <p className="text-[13px]/[1.5] text-fg-secondary italic border-l-2 border-line pl-3 mb-3">
+                        "{t.responseComment}"
+                      </p>
                     )}
-                    <div className="border-t border-line pt-3 mt-1">
-                      <span className="text-[12px]/[1.45] font-mono text-fg-muted block mb-2">{fmtDate(t.createdAt)}</span>
-                      <Button size="sm" variant="primary" icon="check" onClick={() => fulfill(t.id)}>Mark Fulfilled</Button>
+                    <div className="border-t border-line pt-3 mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-[12px]/[1.45] font-mono text-fg-muted">{fmtDateTime(t.createdAt)}</span>
+                      <Button size="sm" variant="primary" icon="check" onClick={() => fulfill(t.id)}>
+                        Mark Fulfilled
+                      </Button>
                     </div>
                   </Card>
                 ))}
@@ -264,19 +265,21 @@ const TradeDashboardPage: React.FC = () => {
           <Card>
             {history.length === 0
               ? <EmptyState icon="resource" text="No completed trades." />
-              : <div className="px-3 pb-1">
+              : <div className="overflow-x-auto">
                   <Table headers={[{ label: 'Date' }, 'Worlds', 'Exchange', 'Status']}>
                     {history.map(t => (
                       <tr key={t.id} className="border-b border-line last:border-0">
-                        <Td mono className="text-fg-muted text-[12px]/[1.45]">{fmtDate(t.createdAt)}</Td>
+                        <Td mono className="text-fg-muted text-[12px]/[1.45] whitespace-nowrap hidden sm:table-cell">
+                          {fmtDate(t.createdAt)}
+                        </Td>
                         <Td>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1">
                             <WorldBadge worldId={nameToFrontendId(t.fromWorld.name, worlds)} size="sm" dot={false} />
-                            <Icon name="arrow" size={12} className="text-fg-muted" />
+                            <Icon name="arrow" size={10} className="text-fg-muted shrink-0" />
                             <WorldBadge worldId={nameToFrontendId(t.toWorld.name, worlds)} size="sm" dot={false} />
                           </div>
                         </Td>
-                        <Td className="font-mono text-[12px]/[1.45] text-fg-secondary capitalize">
+                        <Td className="font-mono text-[11px]/[1.45] sm:text-[12px]/[1.45] text-fg-secondary capitalize whitespace-nowrap">
                           {t.quantityWanted.toLocaleString()} {t.resourceWanted} ⇄ {t.quantityOffered.toLocaleString()} {t.resourceOffered}
                         </Td>
                         <Td><StatusBadge status={cap(t.status)} /></Td>
