@@ -1,5 +1,5 @@
-const ApprovalQueuePage = () => {
-  return <div>ApprovalQueuePage</div>;
-};
+import ApprovalQueue from '../components/ApprovalQueue';
+
+const ApprovalQueuePage = () => <ApprovalQueue />;
 
 export default ApprovalQueuePage;
