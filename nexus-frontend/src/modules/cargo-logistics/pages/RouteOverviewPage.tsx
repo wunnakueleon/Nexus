@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../../shared/hooks/useApp';
 import Card from '../../../shared/components/Card';
 import PageHeader from '../../../shared/components/PageHeader';
+import { getRouteOverview } from '../apis/shipment.api';
+import type { RouteOverviewItem } from '../types/cargo-logistics.types';
+
+// Matches seed creation order — update if DB is re-seeded with different IDs
+const WORLD_BY_ID: Record<number, string> = { 1: 'GLV', 2: 'NPT', 3: 'MNU', 4: 'WNM' };
 
 const POS: Record<string, [number, number]> = {
   GLV: [300, 46],
@@ -12,11 +17,38 @@ const POS: Record<string, [number, number]> = {
 
 interface TrafficInfo { n: number; delayed: boolean; }
 
+const pairKey = (a: string, b: string) => [a, b].sort().join('-');
+
 const lineColor = (t: TrafficInfo) =>
   t.delayed ? '#D93025' : t.n >= 2 ? '#E8960C' : '#5F8A3E';
 
 const RouteOverviewPage: React.FC = () => {
-  const { shipments, worlds } = useApp();
+  const { worlds } = useApp();
+  const [routes, setRoutes] = useState<RouteOverviewItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRouteOverview()
+      .then(data => { if (!cancelled) setRoutes(data); })
+      .catch(() => { if (!cancelled) setRoutes([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Collapse directional corridors into unordered pairs, summing active traffic
+  const trafficByPair = useMemo(() => {
+    const m: Record<string, TrafficInfo> = {};
+    for (const r of routes) {
+      const a = WORLD_BY_ID[r.originWorldId] ?? String(r.originWorldId);
+      const b = WORLD_BY_ID[r.destinationWorldId] ?? String(r.destinationWorldId);
+      const key = pairKey(a, b);
+      const prev = m[key] ?? { n: 0, delayed: false };
+      m[key] = {
+        n: prev.n + r.activeShipments,
+        delayed: prev.delayed || (r.statusBreakdown.delayed ?? 0) > 0,
+      };
+    }
+    return m;
+  }, [routes]);
 
   const present = worlds.filter(w => POS[w.id]);
   const pairs: [string, string][] = [];
@@ -26,13 +58,8 @@ const RouteOverviewPage: React.FC = () => {
     }
   }
 
-  const traffic = (a: string, b: string): TrafficInfo => {
-    const ss = shipments.filter(s =>
-      ((s.origin === a && s.dest === b) || (s.origin === b && s.dest === a)) &&
-      s.status !== 'Delivered',
-    );
-    return { n: ss.length, delayed: ss.some(s => s.status === 'Delayed') };
-  };
+  const traffic = (a: string, b: string): TrafficInfo =>
+    trafficByPair[pairKey(a, b)] ?? { n: 0, delayed: false };
 
   return (
     <div>
