@@ -59,33 +59,68 @@ const MyItemsPage: React.FC = () => {
           <EmptyState icon="box" text="You have not posted any items." sub="Post an item to begin trading" />
         )}
         {!loading && !error && items.length > 0 && (
-          <div className="px-3 pb-1">
-            <Table headers={[
-              { label: '', w: '56px' }, 'Title', 'Category', 'Condition', 'Status',
-              { label: 'Posted' }, { label: 'Actions', align: 'right' },
-            ]}>
+          <>
+            {/* ── Mobile card list (hidden on md+) ─────────────────── */}
+            <div className="md:hidden divide-y divide-line">
               {items.map(it => (
-                <tr key={it.id} className="border-b border-line last:border-0">
-                  <Td><ItemThumb icon={it.category} imageUrl={it.images[0]?.imageUrl} size="sm" /></Td>
-                  <Td className="font-semibold text-fg">{it.title}</Td>
-                  <Td className="text-fg-secondary text-[13px]/[1.5]">{it.category}</Td>
-                  <Td>
-                    <span className="text-[10px]/[1.45] nx-uppercase font-semibold px-1.5 py-0.5 rounded bg-amber-dim text-amber">{it.condition}</span>
-                  </Td>
-                  <Td><StatusBadge status={STATUS_LABEL[it.status] ?? it.status} /></Td>
-                  <Td mono className="text-fg-muted text-[12px]/[1.45]">
-                    {new Date(it.createdAt).toLocaleDateString()}
-                  </Td>
-                  <Td align="right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button size="sm" variant="ghost" icon="edit" disabled={it.status !== 'available'} onClick={() => navigate(`${BASE}/edit/${it.id}`)}>Edit</Button>
-                      <Button size="sm" variant="danger" icon="trash" disabled={it.status !== 'available'} onClick={() => handleDelete(it.id)}>Delete</Button>
+                <div key={it.id} className="flex gap-3 p-3">
+                  <ItemThumb icon={it.category} imageUrl={it.images[0]?.imageUrl} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-fg text-sm truncate">{it.title}</div>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="text-[10px]/[1.45] nx-uppercase font-semibold px-1.5 py-0.5 rounded bg-bg-tertiary text-fg-secondary border border-line">{it.category}</span>
+                      <span className="text-[10px]/[1.45] nx-uppercase font-semibold px-1.5 py-0.5 rounded bg-amber-dim text-amber">{it.condition}</span>
+                      <StatusBadge status={STATUS_LABEL[it.status] ?? it.status} />
                     </div>
-                  </Td>
-                </tr>
+                    <div className="text-[11px]/[1.45] font-mono text-fg-muted mt-1">
+                      {new Date(it.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <Button size="sm" variant="ghost" icon="edit"
+                      disabled={it.status !== 'available'}
+                      onClick={() => navigate(`${BASE}/edit/${it.id}`)}>Edit</Button>
+                    <Button size="sm" variant="danger" icon="trash"
+                      disabled={it.status !== 'available'}
+                      onClick={() => handleDelete(it.id)}>Delete</Button>
+                  </div>
+                </div>
               ))}
-            </Table>
-          </div>
+            </div>
+
+            {/* ── Desktop table (hidden below md) ──────────────────── */}
+            <div className="hidden md:block px-3 pb-1">
+              <Table headers={[
+                { label: '', w: '56px' }, 'Title', 'Category', 'Condition', 'Status',
+                { label: 'Posted' }, { label: 'Actions', align: 'right' },
+              ]}>
+                {items.map(it => (
+                  <tr key={it.id} className="border-b border-line last:border-0">
+                    <Td><ItemThumb icon={it.category} imageUrl={it.images[0]?.imageUrl} size="sm" /></Td>
+                    <Td className="font-semibold text-fg">{it.title}</Td>
+                    <Td className="text-fg-secondary text-[13px]/[1.5]">{it.category}</Td>
+                    <Td>
+                      <span className="text-[10px]/[1.45] nx-uppercase font-semibold px-1.5 py-0.5 rounded bg-amber-dim text-amber">{it.condition}</span>
+                    </Td>
+                    <Td><StatusBadge status={STATUS_LABEL[it.status] ?? it.status} /></Td>
+                    <Td mono className="text-fg-muted text-[12px]/[1.45]">
+                      {new Date(it.createdAt).toLocaleDateString()}
+                    </Td>
+                    <Td align="right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button size="sm" variant="ghost" icon="edit"
+                          disabled={it.status !== 'available'}
+                          onClick={() => navigate(`${BASE}/edit/${it.id}`)}>Edit</Button>
+                        <Button size="sm" variant="danger" icon="trash"
+                          disabled={it.status !== 'available'}
+                          onClick={() => handleDelete(it.id)}>Delete</Button>
+                      </div>
+                    </Td>
+                  </tr>
+                ))}
+              </Table>
+            </div>
+          </>
         )}
       </Card>
     </div>

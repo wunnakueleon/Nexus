@@ -2,25 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import Card from '../../../shared/components/Card';
-import { Select } from '../../../shared/components/Field';
 import EmptyState from '../../../shared/components/EmptyState';
 import LoadingState from '../../../shared/components/LoadingState';
 import PageHeader from '../../../shared/components/PageHeader';
 import ItemThumb from '../components/ItemThumb';
+import FilterSelect from '../components/FilterSelect';
 import { getListings } from '../apis/listing.api';
 import type { ListingResponse, ListingCategory, ListingCondition } from '../types/commercial-marketplace.types';
 import { LISTING_CATEGORIES } from '../schemas/listing.schema';
 
 const BASE = '/commercial-marketplace';
-
-// API condition values → display labels
-const CONDITION_OPTIONS: { value: ListingCondition | 'All'; label: string }[] = [
-  { value: 'All',      label: 'All Conditions' },
-  { value: 'new_item', label: 'New' },
-  { value: 'used',     label: 'Used' },
-  { value: 'handmade', label: 'Handmade' },
-  { value: 'rare',     label: 'Rare' },
-];
 
 const WorldTag: React.FC<{ name: string; color: string }> = ({ name, color }) => (
   <span className="inline-flex items-center gap-1.5 rounded text-[10px]/[1.45] font-semibold px-1.5 py-0.5"
@@ -74,36 +65,55 @@ const BrowseMarketplacePage: React.FC = () => {
   return (
     <div>
       <PageHeader title="Browse Marketplace" sub="Citizen-to-citizen barter across the four worlds." />
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
-        <div className="relative flex-1 min-w-[220px]">
-          <Icon name="search" size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted" />
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search listings..."
-            className="w-full bg-bg-input border border-line rounded text-fg text-sm pl-8 pr-3 py-2 placeholder:text-fg-muted focus:border-amber" />
+
+      <div className="flex flex-col sm:flex-row gap-2 mb-5">
+        {/* Search — takes available space */}
+        <div className="relative flex-1">
+          <Icon name="search" size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none" />
+          <input
+            value={q} onChange={e => setQ(e.target.value)}
+            placeholder="Search listings..."
+            className="w-full bg-bg-input border border-line rounded text-fg text-sm pl-8 pr-3 py-2 placeholder:text-fg-muted focus:border-amber transition-colors"
+          />
         </div>
-        <Select
-          options={['All', ...LISTING_CATEGORIES]}
-          value={cat}
-          onChange={e => setCat(e.target.value as ListingCategory | 'All')}
-        />
-        <Select
-          options={worldOptions}
-          value={String(worldId)}
-          onChange={e => setWorldId(e.target.value === 'All' ? 'All' : Number(e.target.value))}
-        />
-        <Select
-          options={CONDITION_OPTIONS}
-          value={cond}
-          onChange={e => setCond(e.target.value as ListingCondition | 'All')}
-        />
-        <Select
-          options={[
-            { value: 'All', label: 'All Status' },
-            { value: 'available', label: 'Available' },
-            { value: 'in_pending_trade', label: 'Negotiated' },
-          ]}
-          value={status}
-          onChange={e => setStatus(e.target.value as 'All' | 'available' | 'in_pending_trade')}
-        />
+
+        {/* Filters — 2×2 grid on mobile, single row on sm+ */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-nowrap gap-2">
+          <FilterSelect
+            className="sm:min-w-[130px]"
+            options={[{ value: 'All', label: 'Category' }, ...LISTING_CATEGORIES.map(c => ({ value: c, label: c }))]}
+            value={cat}
+            onChange={v => setCat(v as ListingCategory | 'All')}
+          />
+          <FilterSelect
+            className="sm:min-w-[130px]"
+            options={[
+              { value: 'All', label: 'Condition' },
+              { value: 'new_item', label: 'New' },
+              { value: 'used', label: 'Used' },
+              { value: 'handmade', label: 'Handmade' },
+              { value: 'rare', label: 'Rare' },
+            ]}
+            value={cond}
+            onChange={v => setCond(v as ListingCondition | 'All')}
+          />
+          <FilterSelect
+            className="sm:min-w-[150px]"
+            options={worldOptions}
+            value={String(worldId)}
+            onChange={v => setWorldId(v === 'All' ? 'All' : Number(v))}
+          />
+          <FilterSelect
+            className="sm:min-w-[130px]"
+            options={[
+              { value: 'All', label: 'Status' },
+              { value: 'available', label: 'Available' },
+              { value: 'in_pending_trade', label: 'Negotiated' },
+            ]}
+            value={status}
+            onChange={v => setStatus(v as 'All' | 'available' | 'in_pending_trade')}
+          />
+        </div>
       </div>
 
       {loading && <LoadingState />}

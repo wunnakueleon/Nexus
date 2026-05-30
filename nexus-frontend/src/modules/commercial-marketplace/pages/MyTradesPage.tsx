@@ -86,8 +86,10 @@ const MyTradesPage: React.FC = () => {
 
   const handleAccept = async (id: number) => {
     try {
-      await acceptOffer(id);
+      const updated = await acceptOffer(id);
+      // remove from incoming, add to completed so both counts update immediately
       setIncoming(prev => prev.filter(o => o.id !== id));
+      setCompleted(prev => [updated, ...prev]);
       flash('Offer accepted');
     } catch { flash('Failed to accept offer'); }
   };
@@ -95,6 +97,7 @@ const MyTradesPage: React.FC = () => {
   const handleDecline = async (id: number) => {
     try {
       await declineOffer(id);
+      // declined offer disappears from incoming; it won't appear in completed
       setIncoming(prev => prev.filter(o => o.id !== id));
       flash('Offer declined');
     } catch { flash('Failed to decline offer'); }
@@ -102,8 +105,9 @@ const MyTradesPage: React.FC = () => {
 
   const handleWithdraw = async (id: number) => {
     try {
-      await withdrawOffer(id);
-      setOutgoing(prev => prev.filter(o => o.id !== id));
+      const updated = await withdrawOffer(id);
+      // update status in place — stays in history as "Withdrawn"
+      setOutgoing(prev => prev.map(o => o.id === id ? updated : o));
       flash('Offer withdrawn');
     } catch { flash('Failed to withdraw offer'); }
   };
