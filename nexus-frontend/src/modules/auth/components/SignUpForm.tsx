@@ -4,6 +4,7 @@ import Button from '../../../shared/components/Button';
 import { Field, Input } from '../../../shared/components/Field';
 import { useApp } from '../../../shared/hooks/useApp';
 import { signUp } from '../apis/auth.api';
+import { signUpSchema } from '../schemas/auth.schema';
 import type { AuthResponse, SignUpPayload } from '../types/auth.types';
 
 const ROLE_LABELS: Record<AuthResponse['role'], string> = {
@@ -57,21 +58,37 @@ const SignUpForm = () => {
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors: Partial<Record<keyof SignUpPayload, string>> = {};
-    if (!name.trim()) nextErrors.name = 'Name is required.';
-    if (!username.trim()) nextErrors.username = 'Username is required.';
-    if (!password.trim()) nextErrors.password = 'Password is required.';
-    if (!inviteCode.trim()) nextErrors.inviteCode = 'Invite code is required.';
+    const parsed = signUpSchema.safeParse({ name, username, password, inviteCode });
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      setErrors({
+        name: fieldErrors.name?.[0],
+        username: fieldErrors.username?.[0],
+        password: fieldErrors.password?.[0],
+        inviteCode: fieldErrors.inviteCode?.[0],
+      });
+      return;
+    }
 
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    setErrors({});
     setSubmitError(null);
     setSubmitting(true);
     try {
       const response = await signUp({ name, username, password, inviteCode });
       handleRoute(response);
     } catch (err) {
-      setSubmitError('Sign up failed. Check your invite code and try again.');
+      // Surface the backend's actual reason and flag it on the relevant field
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Sign up failed. Please check your details and try again.';
+      const lower = message.toLowerCase();
+      if (lower.includes('invite') || lower.includes('code')) {
+        setErrors({ inviteCode: message });
+      } else if (lower.includes('username')) {
+        setErrors({ username: message });
+      } else {
+        setSubmitError(message);
+      }
     } finally {
       setSubmitting(false);
     }

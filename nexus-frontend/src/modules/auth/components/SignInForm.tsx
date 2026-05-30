@@ -4,6 +4,7 @@ import Button from '../../../shared/components/Button';
 import { Field, Input } from '../../../shared/components/Field';
 import { useApp } from '../../../shared/hooks/useApp';
 import { signIn } from '../apis/auth.api';
+import { signInSchema } from '../schemas/auth.schema';
 import type { AuthResponse, SignInPayload } from '../types/auth.types';
 
 const ROLE_LABELS: Record<AuthResponse['role'], string> = {
@@ -55,19 +56,27 @@ const SignInForm = () => {
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors: Partial<Record<keyof SignInPayload, string>> = {};
-    if (!username.trim()) nextErrors.username = 'Username is required.';
-    if (!password.trim()) nextErrors.password = 'Password is required.';
+    const parsed = signInSchema.safeParse({ username, password });
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      setErrors({
+        username: fieldErrors.username?.[0],
+        password: fieldErrors.password?.[0],
+      });
+      return;
+    }
 
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    setErrors({});
     setSubmitError(null);
     setSubmitting(true);
     try {
       const response = await signIn({ username, password });
       handleRoute(response);
     } catch (err) {
-      setSubmitError('Invalid username or password.');
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Invalid username or password.';
+      setSubmitError(message);
     } finally {
       setSubmitting(false);
     }

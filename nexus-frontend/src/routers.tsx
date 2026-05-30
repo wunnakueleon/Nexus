@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
-import OperatorSelect from './shared/components/OperatorSelect';
+import HomePage from './modules/auth/pages/HomePage';
 import Shell from './shared/components/Shell';
 import authRoutes from './modules/auth/routers/auth.router';
 import adminRoutes from './modules/admin/routers/admin.router';
@@ -13,8 +13,8 @@ const mainRouter = createBrowserRouter([
     path: '/',
     element: <App />,
     children: [
-      { index: true, element: <OperatorSelect /> },
-          ...authRoutes,
+      { index: true, element: <HomePage /> },
+      ...authRoutes,
       {
         // Shell is the persistent layout (sidebar + content) for all authenticated routes.
         element: <Shell />,
