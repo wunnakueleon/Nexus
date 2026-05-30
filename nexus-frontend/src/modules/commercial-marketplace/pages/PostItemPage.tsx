@@ -1,29 +1,35 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useApp } from '../../../shared/hooks/useApp';
 import Button from '../../../shared/components/Button';
 import Card from '../../../shared/components/Card';
 import { Field, Input, Textarea, Select } from '../../../shared/components/Field';
 import Icon from '../../../shared/components/Icon';
 import PageHeader from '../../../shared/components/PageHeader';
-import { CAT_ICON } from '../../../shared/utils/constants';
+import { createListing } from '../apis/listing.api';
+import { postItemSchema, LISTING_CATEGORIES, LISTING_CONDITIONS, type PostItemFormValues } from '../schemas/listing.schema';
 
-const CATEGORIES = ['Tools', 'Food', 'Crafts', 'Tech', 'Clothing', 'Medicine', 'Art', 'Materials'];
-const CONDITIONS = ['New', 'Used', 'Handmade', 'Rare'];
 const BASE = '/commercial-marketplace';
 
 const PostItemPage: React.FC = () => {
-  const { postItem } = useApp();
+  const { flash } = useApp();
   const navigate = useNavigate();
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Tools');
-  const [condition, setCondition] = useState('Used');
-  const [desc, setDesc] = useState('');
-  const valid = title.trim() && desc.trim();
 
-  const submit = () => {
-    postItem({ title: title.trim(), category, condition, desc: desc.trim(), icon: CAT_ICON[category] ?? 'box' });
-    navigate(`${BASE}/my-items`);
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<PostItemFormValues>({
+    resolver: zodResolver(postItemSchema),
+    defaultValues: { category: 'tools', condition: 'used' },
+  });
+
+  const onSubmit = async (data: PostItemFormValues) => {
+    try {
+      await createListing(data);
+      flash('Item posted to marketplace');
+      navigate(`${BASE}/my-items`);
+    } catch {
+      flash('Failed to post item');
+    }
   };
 
   return (
@@ -39,23 +45,29 @@ const PostItemPage: React.FC = () => {
             {[0, 1, 2, 3].map(i => <div key={i} className="aspect-square bg-bg-input border border-line rounded" />)}
           </div>
         </Field>
-        <Field label="Title">
-          <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Reinforced Work Gloves" />
+
+        <Field label="Title" error={errors.title?.message}>
+          <Input {...register('title')} placeholder="e.g. Reinforced Work Gloves" />
         </Field>
+
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Category">
-            <Select options={CATEGORIES} value={category} onChange={e => setCategory(e.target.value)} />
+          <Field label="Category" error={errors.category?.message}>
+            <Select options={LISTING_CATEGORIES} {...register('category')} />
           </Field>
-          <Field label="Condition">
-            <Select options={CONDITIONS} value={condition} onChange={e => setCondition(e.target.value)} />
+          <Field label="Condition" error={errors.condition?.message}>
+            <Select options={LISTING_CONDITIONS} {...register('condition')} />
           </Field>
         </div>
-        <Field label="Description">
-          <Textarea rows={4} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe the item, its condition, and any details..." />
+
+        <Field label="Description" error={errors.description?.message}>
+          <Textarea rows={4} {...register('description')} placeholder="Describe the item, its condition, and any details..." />
         </Field>
+
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => navigate(`${BASE}/my-items`)}>Cancel</Button>
-          <Button variant="solid" icon="plus" disabled={!valid} onClick={submit}>Post Item</Button>
+          <Button variant="ghost" type="button" onClick={() => navigate(`${BASE}/my-items`)}>Cancel</Button>
+          <Button variant="solid" icon="plus" type="submit" disabled={isSubmitting} onClick={handleSubmit(onSubmit)}>
+            {isSubmitting ? 'Posting...' : 'Post Item'}
+          </Button>
         </div>
       </Card>
     </div>
