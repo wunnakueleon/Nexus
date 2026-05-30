@@ -58,7 +58,7 @@ export interface TradeRequestRow {
 export interface CreateTradePayload {
   fromWorldId: number;
   toWorldId: number;
-  requestedByUserId: number;
+  requestedByUserId?: number;
   resourceWanted: ResourceType;
   quantityWanted: number;
   resourceOffered: ResourceType;

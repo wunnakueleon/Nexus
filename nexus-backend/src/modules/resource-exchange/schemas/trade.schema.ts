@@ -5,7 +5,7 @@ const resourceTypeEnum = z.enum(['fuel', 'water', 'food', 'medicine', 'steel']);
 export const createTradeSchema = z.object({
   fromWorldId: z.number().int().positive(),
   toWorldId: z.number().int().positive(),
-  requestedByUserId: z.number().int().positive(),
+  requestedByUserId: z.number().int().positive().optional(),
   resourceWanted: resourceTypeEnum,
   quantityWanted: z.number().int().positive(),
   resourceOffered: resourceTypeEnum,

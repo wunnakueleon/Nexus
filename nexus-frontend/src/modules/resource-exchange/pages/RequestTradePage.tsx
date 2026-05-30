@@ -13,7 +13,6 @@ import WorldBadge from '../../../shared/components/WorldBadge';
 const RESOURCE_OPTIONS = ['fuel', 'water', 'food', 'medicine', 'steel'];
 const URGENCY_OPTIONS  = ['normal', 'urgent', 'critical'];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const DEMO_USER_ID = 1; // placeholder until auth is wired
 
 const RequestTradePage: React.FC = () => {
   const { worlds, worldById, operator } = useApp();
@@ -26,7 +25,7 @@ const RequestTradePage: React.FC = () => {
   useEffect(() => {
     resourceApi.getAll().then(res => {
       const map: Record<string, number> = {};
-      res.data.data.forEach(r => { map[r.world.name] = r.worldId; });
+      (res.data.data ?? []).forEach(r => { map[r.world.name] = r.worldId; });
       setNameToDbId(map);
     });
   }, []);
@@ -63,10 +62,9 @@ const RequestTradePage: React.FC = () => {
     setSubmitting(true);
     try {
       await tradeApi.create({
-        fromWorldId:       myDbWorldId,
-        toWorldId:         toDbWorldId,
-        requestedByUserId: DEMO_USER_ID,
-        resourceWanted:    wantRes,
+        fromWorldId:    myDbWorldId,
+        toWorldId:      toDbWorldId,
+        resourceWanted: wantRes,
         quantityWanted:    wantQty,
         resourceOffered:   offerRes,
         quantityOffered:   offerQty,

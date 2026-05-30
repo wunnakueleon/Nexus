@@ -118,7 +118,7 @@ const TradeDashboardPage: React.FC = () => {
     try {
       // Resolve own DB world id from resources
       const resRes = await resourceApi.getAll();
-      const myRow  = resRes.data.data.find(r => r.world.name === myWorldName);
+      const myRow  = (resRes.data.data ?? []).find(r => r.world.name === myWorldName);
       const dbId   = myRow?.worldId ?? null;
       setMyDbId(dbId);
 
@@ -155,7 +155,7 @@ const TradeDashboardPage: React.FC = () => {
     fetchAll();
   };
 
-  if (loading) return <LoadingState message="Loading trade dashboard..." />;
+  if (loading) return <LoadingState />;
 
   return (
     <div>

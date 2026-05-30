@@ -1,5 +1,17 @@
 import { prisma } from '../../../db';
-import type { CreateTradeInput, RespondTradeInput } from '../schemas/trade.schema';
+import type { RespondTradeInput } from '../schemas/trade.schema';
+
+interface CreateTradeData {
+  fromWorldId: number;
+  toWorldId: number;
+  requestedByUserId: number;
+  resourceWanted: 'fuel' | 'water' | 'food' | 'medicine' | 'steel';
+  quantityWanted: number;
+  resourceOffered: 'fuel' | 'water' | 'food' | 'medicine' | 'steel';
+  quantityOffered: number;
+  urgency: 'normal' | 'urgent' | 'critical';
+  requestComment?: string;
+}
 
 const tradeIncludes = {
   fromWorld: { select: { id: true, name: true, colorHex: true } },
@@ -22,7 +34,7 @@ export const tradeModel = {
       include: tradeIncludes,
     }),
 
-  create: (input: CreateTradeInput) =>
+  create: (input: CreateTradeData) =>
     prisma.tradeRequest.create({
       data: {
         fromWorldId:       input.fromWorldId,

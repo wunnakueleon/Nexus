@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { tradeModel } from '../models/trade.model';
 import { createTradeSchema, respondTradeSchema } from '../schemas/trade.schema';
+import { prisma } from '../../../db';
 
 type IdParams = { id: string };
 
@@ -44,7 +45,21 @@ export const tradeController = {
         res.status(400).json({ success: false, errors: parsed.error.issues });
         return;
       }
-      const data = await tradeModel.create(parsed.data);
+
+      // Resolve requestedByUserId from DB if not supplied by client
+      let requestedByUserId = parsed.data.requestedByUserId;
+      if (!requestedByUserId) {
+        const user = await prisma.user.findFirst({
+          where: { worldId: parsed.data.fromWorldId, status: 'active' },
+        });
+        if (!user) {
+          res.status(400).json({ success: false, message: 'No active user found for fromWorld' });
+          return;
+        }
+        requestedByUserId = user.id;
+      }
+
+      const data = await tradeModel.create({ ...parsed.data, requestedByUserId });
       res.status(201).json({ success: true, data });
     } catch (err) {
       next(err);

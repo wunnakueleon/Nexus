@@ -25,7 +25,7 @@ const ResourceOverviewPage: React.FC = () => {
   const fetchResources = useCallback(async () => {
     try {
       const res = await resourceApi.getAll();
-      setAllResources(res.data.data);
+      setAllResources(res.data.data ?? []);
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ const ResourceOverviewPage: React.FC = () => {
     }
   };
 
-  if (loading) return <LoadingState message="Loading resource telemetry..." />;
+  if (loading) return <LoadingState />;
 
   return (
     <div>
