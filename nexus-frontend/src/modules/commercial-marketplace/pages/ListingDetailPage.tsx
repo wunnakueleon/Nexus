@@ -23,6 +23,7 @@ const ListingDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [listing, setListing] = useState<ListingResponse | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isOwnListing, setIsOwnListing] = useState(false);
   const [hasAvailableItems, setHasAvailableItems] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -34,6 +35,7 @@ const ListingDetailPage: React.FC = () => {
     Promise.all([getListingById(Number(id)), getMyListings()])
       .then(([l, mine]) => {
         setListing(l);
+        setSelectedImage(l.images[0]?.imageUrl ?? null);
         const myUserId = mine[0]?.user.id ?? null;
         setIsOwnListing(myUserId !== null && myUserId === l.user.id);
         setHasAvailableItems(mine.some(i => i.status === 'available'));
@@ -54,21 +56,26 @@ const ListingDetailPage: React.FC = () => {
       </button>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <ItemThumb icon={l.category} imageUrl={l.images[0]?.imageUrl} size="lg" />
-          <div className="grid grid-cols-4 gap-2 mt-2">
-            {l.images.slice(0, 4).map((img, i) => (
-              <div key={img.id ?? i} className="aspect-square bg-bg-input border border-line rounded overflow-hidden">
-                {img.imageUrl
-                  ? <img src={img.imageUrl} alt="" className="w-full h-full object-cover" />
-                  : <Icon name={l.category} size={14} className="text-fg-muted/60 m-auto mt-3" />}
-              </div>
-            ))}
-            {Array.from({ length: Math.max(0, 4 - l.images.length) }).map((_, i) => (
-              <div key={`ph-${i}`} className="aspect-square bg-bg-input border border-line rounded flex items-center justify-center">
-                <Icon name={l.category} size={14} className="text-fg-muted/60" />
-              </div>
-            ))}
-          </div>
+          {/* Main image — shows selected thumbnail, or category icon if no images */}
+          <ItemThumb icon={l.category} imageUrl={selectedImage} size="lg" />
+
+          {/* Thumbnails — only shown when there are actual images */}
+          {l.images.length > 0 && (
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              {l.images.slice(0, 4).map(img => (
+                <button
+                  key={img.id}
+                  type="button"
+                  onClick={() => setSelectedImage(img.imageUrl)}
+                  className={`aspect-square rounded overflow-hidden border-2 transition-colors ${
+                    selectedImage === img.imageUrl ? 'border-amber' : 'border-line hover:border-line-hover'
+                  }`}
+                >
+                  <img src={img.imageUrl} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <h1 className="text-xl font-semibold text-fg mb-2.5">{l.title}</h1>
