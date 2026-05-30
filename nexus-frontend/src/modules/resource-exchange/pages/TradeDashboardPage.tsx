@@ -160,7 +160,9 @@ const TradeDashboardPage: React.FC = () => {
         }
       />
 
-      <Tabs tabs={tabs} active={tab} onChange={setTab} />
+      <div className="overflow-x-auto">
+        <Tabs tabs={tabs} active={tab} onChange={setTab} />
+      </div>
 
       <div className="mt-4 sm:mt-5">
 
@@ -279,7 +281,7 @@ const TradeDashboardPage: React.FC = () => {
                             <WorldBadge worldId={nameToFrontendId(t.toWorld.name, worlds)} size="sm" dot={false} />
                           </div>
                         </Td>
-                        <Td className="font-mono text-[11px]/[1.45] sm:text-[12px]/[1.45] text-fg-secondary capitalize whitespace-nowrap">
+                        <Td className="font-mono text-[11px]/[1.45] sm:text-[12px]/[1.45] text-fg-secondary capitalize">
                           {t.quantityWanted.toLocaleString()} {t.resourceWanted} ⇄ {t.quantityOffered.toLocaleString()} {t.resourceOffered}
                         </Td>
                         <Td><StatusBadge status={cap(t.status)} /></Td>

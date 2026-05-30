@@ -39,7 +39,7 @@ const ShellInner: React.FC<ShellInnerProps> = ({ operator }) => {
       />
 
       {/* Main — full width on mobile, offset by sidebar on md+ */}
-      <div className="min-h-screen md:ml-60">
+      <div className="min-h-screen md:ml-60 overflow-x-hidden">
 
         {/* Mobile top bar */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-line bg-bg-secondary sticky top-0 z-10">
