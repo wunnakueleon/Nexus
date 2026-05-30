@@ -143,7 +143,7 @@ const ApprovalQueue: React.FC = () => {
           ? <div className="px-4 py-6 text-sm text-fg-secondary">Loading approval queue...</div>
           : !hasRows
             ? <EmptyState icon="users" text="No pending requests." sub="All access requests resolved" />
-            : <div className="px-3 pt-1 pb-1">
+            : <div className="px-3 pt-1 pb-1 overflow-x-auto">
                 <Table headers={['Applicant', 'World', 'Role', { label: 'Code' }, { label: 'Submitted' }, { label: 'Action', align: 'right' }]}>
                   {tableRows.map(row => (
                     <tr key={row.id} className="border-b border-line last:border-0 hover:bg-bg-tertiary/40">
@@ -198,7 +198,7 @@ const ApprovalQueue: React.FC = () => {
             </Field>
           </div>
         </div>
-        <div className="px-3 pb-1">
+        <div className="px-3 pb-1 overflow-x-auto">
           {historyLoading
             ? <div className="px-1 py-4 text-sm text-fg-secondary">Loading history...</div>
             : historyRows.length === 0

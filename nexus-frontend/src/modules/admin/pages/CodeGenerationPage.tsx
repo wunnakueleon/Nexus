@@ -6,7 +6,6 @@ import PageHeader from '../../../shared/components/PageHeader';
 import SectionLabel from '../../../shared/components/SectionLabel';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import { Table, Td } from '../../../shared/components/Table';
-import WorldBadge from '../../../shared/components/WorldBadge';
 import { fetchAccessCodes, generateAccessCodes, expireAccessCode } from '../apis/code.api';
 import { fetchWorlds } from '../apis/world.api';
 import type { AccessCodeRole, AccessCodeRow, AdminWorldSummary } from '../types/admin.types';
@@ -31,18 +30,28 @@ const STATUS_LABEL: Record<AccessCodeRow['status'], string> = {
   expired: 'Expired',
 };
 
-const WORLD_NAME_TO_ID: Record<string, string> = {
-  GloriaVenus: 'GLV',
-  NanPtune: 'NPT',
-  MinUranus: 'MNU',
-  WunnaMars: 'WNM',
-};
-
 const formatStamp = (value: string) => {
   const stamp = new Date(value);
   if (Number.isNaN(stamp.getTime())) return value;
   return stamp.toLocaleDateString();
 };
+
+const WorldPill: React.FC<{ world: AdminWorldSummary }> = ({ world }) => (
+  <span
+    className="inline-flex items-center gap-1.5 rounded font-semibold text-[10px]/[1.45] px-1.5 py-0.5 whitespace-nowrap"
+    style={{ color: world.colorHex, background: `${world.colorHex}22` }}
+  >
+    <span className="w-1.5 h-1.5 rounded-sm shrink-0" style={{ background: world.colorHex }} />
+    {world.name}
+  </span>
+);
+
+// A Select that shrinks responsively in filter bars
+const FilterSelect: React.FC<React.ComponentProps<typeof Select>> = (props) => (
+  <div className="min-w-0 flex-1">
+    <Select {...props} />
+  </div>
+);
 
 const CodeGenerationPage: React.FC = () => {
   const [worlds, setWorlds] = useState<AdminWorldSummary[]>([]);
@@ -58,6 +67,11 @@ const CodeGenerationPage: React.FC = () => {
   const [fRole, setFRole] = useState('All');
   const [fStatus, setFStatus] = useState('All');
 
+  const worldMap = useMemo(
+    () => Object.fromEntries(worlds.map(w => [w.id, w])),
+    [worlds],
+  );
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -66,22 +80,19 @@ const CodeGenerationPage: React.FC = () => {
       setWorlds(worldList);
       setCodes(codeList);
       const firstActive = worldList.find(w => w.status === 'active');
-      if (firstActive && !world) {
-        setWorld(String(firstActive.id));
-      }
-    } catch (err) {
+      if (firstActive && !world) setWorld(String(firstActive.id));
+    } catch {
       setError('Unable to load access codes.');
     } finally {
       setLoading(false);
     }
   }, [world]);
 
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
+  useEffect(() => { void loadData(); }, [loadData]);
 
   const activeWorlds = useMemo(() => worlds.filter(w => w.status === 'active'), [worlds]);
   const worldOpts = activeWorlds.map(w => ({ value: String(w.id), label: w.name }));
+
   const filtered = useMemo(() => codes.filter(c =>
     (fWorld === 'All' || String(c.worldId) === fWorld) &&
     (fRole === 'All' || ROLE_LABEL[c.role] === fRole) &&
@@ -99,7 +110,7 @@ const CodeGenerationPage: React.FC = () => {
       const created = await generateAccessCodes(Number(world), ROLE_VALUE[role], effectiveQty);
       setCodes(prev => [...created, ...prev]);
       if (role !== 'Commercial Citizen') setQty(1);
-    } catch (err) {
+    } catch {
       setError('Unable to generate access codes.');
     } finally {
       setBusy(false);
@@ -112,7 +123,7 @@ const CodeGenerationPage: React.FC = () => {
     try {
       const updated = await expireAccessCode(id);
       setCodes(prev => prev.map(c => (c.id === updated.id ? updated : c)));
-    } catch (err) {
+    } catch {
       setError('Unable to expire code.');
     } finally {
       setBusy(false);
@@ -130,7 +141,7 @@ const CodeGenerationPage: React.FC = () => {
             <Select options={worldOpts} value={world} onChange={e => setWorld(e.target.value)} />
           </Field>
           <Field label="Role">
-            <Select options={ROLE_OPTS} value={role} onChange={e => setRole(e.target.value)} />
+            <Select options={ROLE_OPTS} value={role} onChange={e => setRole(e.target.value as typeof role)} />
           </Field>
           <Field label="Quantity">
             <div className="text-[11px]/[1.45] text-fg-muted font-mono mb-1">
@@ -153,29 +164,49 @@ const CodeGenerationPage: React.FC = () => {
 
       <Card>
         {error && <div className="px-4 pt-4 text-xs text-critical font-mono">{error}</div>}
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-line flex-wrap">
-          <SectionLabel className="mb-0">
+
+        {/* Filter bar — label left, dropdowns share remaining space */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-line">
+          <SectionLabel className="mb-0 shrink-0">
             Issued Codes <span className="text-fg-muted font-mono ml-1">{filtered.length}</span>
           </SectionLabel>
-          <div className="flex items-center gap-2">
-            <Select options={['All', ...worlds.map(w => ({ value: String(w.id), label: w.name }))]} value={fWorld} onChange={e => setFWorld(e.target.value)} />
-            <Select options={['All', ...ROLE_OPTS]} value={fRole} onChange={e => setFRole(e.target.value)} />
-            <Select options={['All', 'Available', 'Used', 'Expired']} value={fStatus} onChange={e => setFStatus(e.target.value)} />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <FilterSelect
+              options={['All', ...worlds.map(w => ({ value: String(w.id), label: w.name }))]}
+              value={fWorld}
+              onChange={e => setFWorld(e.target.value)}
+            />
+            <FilterSelect
+              options={['All', ...ROLE_OPTS]}
+              value={fRole}
+              onChange={e => setFRole(e.target.value)}
+            />
+            <FilterSelect
+              options={['All', 'Available', 'Used', 'Expired']}
+              value={fStatus}
+              onChange={e => setFStatus(e.target.value)}
+            />
           </div>
         </div>
-        <div className="px-3 pb-1">
+
+        {/* Scrollable table wrapper */}
+        <div className="overflow-x-auto">
           {loading
-            ? <div className="px-1 py-4 text-sm text-fg-secondary">Loading codes...</div>
+            ? <div className="px-4 py-4 text-sm text-fg-secondary">Loading codes...</div>
             : <Table headers={['Code', 'World', 'Role', 'Status', 'Used By', { label: 'Created' }, { label: '', align: 'right' }]}>
                 {filtered.map(c => (
                   <tr key={c.id} className="border-b border-line last:border-0 hover:bg-bg-tertiary/40">
-                    <Td mono className="text-fg font-medium">{c.code}</Td>
-                    <Td><WorldBadge worldId={WORLD_NAME_TO_ID[c.worldName] ?? c.worldName} size="sm" /></Td>
-                    <Td className="text-fg-secondary">{ROLE_LABEL[c.role]}</Td>
-                    <Td><StatusBadge status={STATUS_LABEL[c.status]} /></Td>
+                    <Td mono className="text-fg font-medium whitespace-nowrap">{c.code}</Td>
+                    <Td className="whitespace-nowrap">
+                      {worldMap[c.worldId]
+                        ? <WorldPill world={worldMap[c.worldId]} />
+                        : <span className="text-fg-muted text-xs">{c.worldName}</span>}
+                    </Td>
+                    <Td className="text-fg-secondary whitespace-nowrap">{ROLE_LABEL[c.role]}</Td>
+                    <Td className="whitespace-nowrap"><StatusBadge status={STATUS_LABEL[c.status]} /></Td>
                     <Td className="text-fg-secondary">{c.usedBy || <span className="text-fg-muted">—</span>}</Td>
-                    <Td mono className="text-fg-muted text-[12px]/[1.45]">{formatStamp(c.createdAt)}</Td>
-                    <Td align="right">
+                    <Td mono className="text-fg-muted text-[12px]/[1.45] whitespace-nowrap">{formatStamp(c.createdAt)}</Td>
+                    <Td align="right" className="whitespace-nowrap">
                       {c.status === 'available' && (
                         <Button size="sm" variant="ghost" onClick={() => onExpire(c.id)} disabled={busy}>Expire</Button>
                       )}

@@ -153,7 +153,7 @@ const WorldManagementPage: React.FC = () => {
 
       <SectionLabel>Active Worlds</SectionLabel>
       <Card className="mb-7">
-        <div className="px-3 pb-1">
+        <div className="px-3 pb-1 overflow-x-auto">
           <Table headers={['World', 'Identity', { label: 'Added' }, { label: 'Actions', align: 'right' }]}>
             {loading
               ? <tr><Td colSpan={4} className="text-fg-secondary">Loading worlds...</Td></tr>
@@ -219,7 +219,7 @@ const WorldManagementPage: React.FC = () => {
 
       <SectionLabel>Request History</SectionLabel>
       <Card>
-        <div className="px-3 pb-1">
+        <div className="px-3 pb-1 overflow-x-auto">
           <Table headers={['Type', 'World', 'Reason', { label: 'Window' }, 'Result']}>
             {history.map(h => (
               <tr key={h.id} className="border-b border-line last:border-0">
