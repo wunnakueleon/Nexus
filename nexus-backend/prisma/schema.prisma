@@ -1,0 +1,407 @@
+// =============================================================================
+// NEXUS — Inter-Galactic Post-Apocalypse Cooperation Platform
+// Prisma Schema (SQLite)
+// =============================================================================
+//
+// DEV LEAD: Wunna Moe San (681305008535)
+//   - Shared UI, Prisma schema, mock data, auth logic
+//   - Commercial Marketplace feature
+//
+// OWNERSHIP MAP:
+//
+//   Min Thuta (68130500839) — Admin Portal
+//     → World, User, AccessCode, WorldRequest
+//
+//   Kyi Phyu Thiri Khaing (68130500851) — Resource Exchange
+//     → Resource, TradeRequest
+//
+//   Nang Thiri Htet Hsu (68130500853) — Cargo Logistics
+//     → Shipment, ShipmentItem, ShipmentTimeline, ShipmentFlag
+//
+//   Wunna Moe San (681305008535) — Commercial Marketplace + Shared
+//     → Listing, ListingImage, TradeOffer
+//     → All enums, seed data, auth, shared UI components
+//
+// RULES:
+//   - Do NOT modify this schema without Dev Lead approval.
+//   - Everyone reads from World and User. Nobody alters core models.
+//   - If you need a new enum value, request it through Dev Lead.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// =============================================================================
+// ENUMS (maintained by Dev Lead)
+// =============================================================================
+
+enum WorldStatus {
+  active
+  removed
+}
+
+enum UserRole {
+  admin
+  resource_manager
+  transit_officer
+  commercial_citizen
+}
+
+enum UserStatus {
+  pending
+  active
+  revoked
+}
+
+enum CodeStatus {
+  available
+  used
+  expired
+}
+
+enum WorldRequestType {
+  addition
+  removal
+}
+
+enum WorldRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum ResourceType {
+  fuel
+  water
+  food
+  medicine
+  steel
+}
+
+enum ResourceStatus {
+  surplus
+  stable
+  low
+  critical
+}
+
+enum TradeRequestUrgency {
+  normal
+  urgent
+  critical
+}
+
+enum TradeRequestStatus {
+  pending
+  accepted
+  declined
+  cancelled
+  fulfilled
+}
+
+enum ShipmentSourceType {
+  manual
+  resource_trade
+  commercial_trade
+}
+
+enum ShipmentStatus {
+  preparing
+  departed
+  in_transit
+  delivered
+  delayed
+  cancelled
+}
+
+enum ShipmentFlagType {
+  delay
+  damage
+  missing_items
+  other
+}
+
+enum ListingCategory {
+  tools
+  food
+  crafts
+  tech
+  clothing
+  medicine
+  art
+  materials
+}
+
+enum ListingCondition {
+  new_item
+  used
+  handmade
+  rare
+}
+
+enum ListingStatus {
+  available
+  in_pending_trade
+  traded
+  deleted
+}
+
+enum TradeOfferStatus {
+  pending
+  accepted
+  declined
+  withdrawn
+}
+
+
+// =============================================================================
+// Min Thuta (68130500839) — Admin Portal
+// =============================================================================
+
+// Registry of all worlds. Starts with: GloriaVenus, NanPtune, MinUranus, WunnaMars.
+model World {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  colorHex  String
+  status    WorldStatus @default(active)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  users                  User[]
+  accessCodes            AccessCode[]
+  worldRequestsForRemoval WorldRequest[]  @relation("WorldRequestTarget")
+  resources              Resource[]
+  tradeRequestsFrom      TradeRequest[]  @relation("TradeRequestFromWorld")
+  tradeRequestsTo        TradeRequest[]  @relation("TradeRequestToWorld")
+  shipmentsAsOrigin      Shipment[]      @relation("ShipmentOriginWorld")
+  shipmentsAsDestination Shipment[]      @relation("ShipmentDestinationWorld")
+}
+
+// Every account on the platform. Role determines feature access after sign-in.
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String
+  username     String     @unique
+  passwordHash String
+  worldId      Int
+  role         UserRole
+  status       UserStatus @default(pending)
+  codeId       Int        @unique
+  createdAt    DateTime   @default(now())
+  approvedAt   DateTime?
+
+  world World      @relation(fields: [worldId], references: [id])
+  code  AccessCode @relation(fields: [codeId], references: [id])
+
+  tradeRequestsSent       TradeRequest[]     @relation("TradeRequestedBy")
+  tradeRequestsResolved   TradeRequest[]     @relation("TradeRespondedBy")
+  shipmentsCreated        Shipment[]         @relation("ShipmentCreatedBy")
+  shipmentTimelineEntries ShipmentTimeline[] @relation("TimelineChangedBy")
+  shipmentFlagsReported   ShipmentFlag[]     @relation("FlagReportedBy")
+  listings                Listing[]          @relation("ListingOwner")
+  tradeOffersSent         TradeOffer[]       @relation("TradeOfferBuyer")
+  tradeOffersReceived     TradeOffer[]       @relation("TradeOfferSeller")
+}
+
+// Access codes generated by Admin. Pre-tagged with world + role. Single-use.
+model AccessCode {
+  id           Int        @id @default(autoincrement())
+  codeString   String     @unique
+  worldId      Int
+  role         UserRole
+  status       CodeStatus @default(available)
+  usedByUserId Int?       @unique
+  createdAt    DateTime   @default(now())
+  usedAt       DateTime?
+
+  world  World @relation(fields: [worldId], references: [id])
+  usedBy User?
+}
+
+// Requests to add or remove worlds. Admin submits, marks approved/rejected later.
+model WorldRequest {
+  id          Int                @id @default(autoincrement())
+  requestType WorldRequestType
+  worldName   String
+  worldId     Int?
+  colorHex    String?
+  reason      String
+  status      WorldRequestStatus @default(pending)
+  requestedAt DateTime           @default(now())
+  resolvedAt  DateTime?
+
+  world World? @relation("WorldRequestTarget", fields: [worldId], references: [id])
+}
+
+
+// =============================================================================
+// Kyi Phyu Thiri Khaing (68130500851) — Resource Exchange
+// =============================================================================
+
+// Stock levels per world per resource. One row per world per resource type.
+model Resource {
+  id           Int            @id @default(autoincrement())
+  worldId      Int
+  resourceType ResourceType
+  stock        Int            @default(0)
+  status       ResourceStatus @default(stable)
+  burnRate     Int            @default(0)
+  updatedAt    DateTime       @updatedAt
+
+  world World @relation(fields: [worldId], references: [id])
+
+  @@unique([worldId, resourceType])
+}
+
+// Government-level trade request from one world to another.
+model TradeRequest {
+  id                Int                 @id @default(autoincrement())
+  fromWorldId       Int
+  toWorldId         Int
+  requestedByUserId Int
+  resourceWanted    ResourceType
+  quantityWanted    Int
+  resourceOffered   ResourceType
+  quantityOffered   Int
+  urgency           TradeRequestUrgency @default(normal)
+  requestComment    String?
+  status            TradeRequestStatus  @default(pending)
+  responseComment   String?
+  respondedByUserId Int?
+  createdAt         DateTime            @default(now())
+  respondedAt       DateTime?
+  fulfilledAt       DateTime?
+
+  fromWorld   World @relation("TradeRequestFromWorld", fields: [fromWorldId], references: [id])
+  toWorld     World @relation("TradeRequestToWorld", fields: [toWorldId], references: [id])
+  requestedBy User  @relation("TradeRequestedBy", fields: [requestedByUserId], references: [id])
+  respondedBy User? @relation("TradeRespondedBy", fields: [respondedByUserId], references: [id])
+  shipment    Shipment? @relation("ShipmentFromTradeRequest")
+}
+
+
+// =============================================================================
+// Nang Thiri Htet Hsu (68130500853) — Cargo Logistics
+// =============================================================================
+
+// A shipment moving between two worlds. Manual or auto-generated from trades.
+model Shipment {
+  id                 Int                @id @default(autoincrement())
+  shipmentCode       String             @unique
+  originWorldId      Int
+  destinationWorldId Int
+  createdByUserId    Int?
+  sourceType         ShipmentSourceType @default(manual)
+  tradeRequestId     Int?               @unique
+  tradeOfferId       Int?               @unique
+  transportReference String?
+  status             ShipmentStatus     @default(preparing)
+  scheduledDeparture DateTime?
+  estimatedArrival   DateTime?
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  originWorld      World  @relation("ShipmentOriginWorld", fields: [originWorldId], references: [id])
+  destinationWorld World  @relation("ShipmentDestinationWorld", fields: [destinationWorldId], references: [id])
+  createdBy        User?  @relation("ShipmentCreatedBy", fields: [createdByUserId], references: [id])
+  tradeRequest     TradeRequest? @relation("ShipmentFromTradeRequest", fields: [tradeRequestId], references: [id])
+  tradeOffer       TradeOffer?   @relation("ShipmentFromTradeOffer", fields: [tradeOfferId], references: [id])
+  items            ShipmentItem[]
+  timeline         ShipmentTimeline[]
+  flags            ShipmentFlag[]
+}
+
+// Line items in a shipment manifest.
+model ShipmentItem {
+  id             Int     @id @default(autoincrement())
+  shipmentId     Int
+  resourceType   String
+  quantity       Int
+  conditionNotes String?
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
+}
+
+// Status change history. Builds the timeline on Shipment Detail screen.
+model ShipmentTimeline {
+  id              Int            @id @default(autoincrement())
+  shipmentId      Int
+  status          ShipmentStatus
+  changedByUserId Int
+  timestamp       DateTime       @default(now())
+
+  shipment  Shipment @relation(fields: [shipmentId], references: [id])
+  changedBy User     @relation("TimelineChangedBy", fields: [changedByUserId], references: [id])
+}
+
+// Flags for delays, damage, or missing items on a shipment.
+model ShipmentFlag {
+  id               Int              @id @default(autoincrement())
+  shipmentId       Int
+  flagType         ShipmentFlagType
+  description      String
+  reportedByUserId Int
+  createdAt        DateTime         @default(now())
+
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+  reportedBy User     @relation("FlagReportedBy", fields: [reportedByUserId], references: [id])
+}
+
+
+// =============================================================================
+// Wunna Moe San (681305008535) — Commercial Marketplace
+// =============================================================================
+
+// An item posted by a citizen for barter trade.
+model Listing {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  title       String
+  description String
+  category    ListingCategory
+  condition   ListingCondition
+  status      ListingStatus    @default(available)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user           User           @relation("ListingOwner", fields: [userId], references: [id])
+  images         ListingImage[]
+  offersReceived TradeOffer[]   @relation("TradeOfferTargetListing")
+  offersAsPayment TradeOffer[]  @relation("TradeOfferOfferedListing")
+}
+
+// Photos attached to a listing. Up to 5. displayOrder 1 = primary image.
+model ListingImage {
+  id           Int      @id @default(autoincrement())
+  listingId    Int
+  imageUrl     String
+  displayOrder Int
+  createdAt    DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id])
+}
+
+// A trade offer: buyer offers their listing for the seller's listing.
+model TradeOffer {
+  id               Int              @id @default(autoincrement())
+  listingId        Int
+  offeredListingId Int
+  buyerUserId      Int
+  sellerUserId     Int
+  status           TradeOfferStatus @default(pending)
+  createdAt        DateTime         @default(now())
+  resolvedAt       DateTime?
+
+  listing        Listing @relation("TradeOfferTargetListing", fields: [listingId], references: [id])
+  offeredListing Listing @relation("TradeOfferOfferedListing", fields: [offeredListingId], references: [id])
+  buyer          User    @relation("TradeOfferBuyer", fields: [buyerUserId], references: [id])
+  seller         User    @relation("TradeOfferSeller", fields: [sellerUserId], references: [id])
+  shipment       Shipment? @relation("ShipmentFromTradeOffer")
+}
