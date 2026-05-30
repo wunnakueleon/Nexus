@@ -32,7 +32,8 @@ export const findAll = (filters: FindAllFilters = {}) => {
 
   return prisma.listing.findMany({
     where: {
-      status: { not: "deleted" as ListingStatus },
+      // Browse board shows items still on offer; traded/deleted drop off
+      status: { in: ["available", "in_pending_trade"] as ListingStatus[] },
       ...(category && { category }),
       ...(worldId && { user: { worldId } }),
       ...(keyword && {

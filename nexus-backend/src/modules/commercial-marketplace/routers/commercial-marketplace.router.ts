@@ -1,12 +1,17 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { authenticate } from "../../../middlewares/auth";
 import { roleGuard } from "../../../middlewares/role_guard";
 import * as listing from "../controllers/listing.controller";
 import * as tradeOffer from "../controllers/trade-offer.controller";
+import { upload, uploadImages, UPLOAD_DIR } from "../controllers/upload.controller";
 
 const commercialMarketplaceRouter = Router();
 
 const guard = [authenticate, roleGuard(["commercial_citizen"])];
+
+// Image uploads — serve saved files publicly, accept new uploads (auth'd)
+commercialMarketplaceRouter.use("/uploads", express.static(UPLOAD_DIR));
+commercialMarketplaceRouter.post("/uploads", ...guard, upload.array("images", 4), uploadImages);
 
 // Listings
 commercialMarketplaceRouter.get("/listings/my",  ...guard, listing.getMyListings);
