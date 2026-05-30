@@ -79,33 +79,67 @@ const ShipmentBoardPage: React.FC = () => {
       <Card>
         {list.length === 0
           ? <EmptyState icon="cargo" text="No shipments in this state." />
-          : <div className="px-3 pb-1">
-            <Table headers={['Shipment ID', 'Dir', 'Route', 'Contents', { label: 'Departed' }, { label: 'ETA' }, 'Status', { label: '', w: '24px' }]}>
+          : <>
+            {/* Desktop / tablet: table (scrolls horizontally if it ever overflows) */}
+            <div className="hidden md:block px-3 pb-1 overflow-x-auto">
+              <Table headers={['Shipment ID', 'Dir', 'Route', 'Contents', { label: 'Departed' }, { label: 'ETA' }, 'Status', { label: '', w: '24px' }]}>
+                {list.map(s => (
+                  <tr key={s.id} onClick={() => navigate(`${BASE}/shipments/${s.id}`)}
+                    className="border-b border-line last:border-0 hover:bg-bg-tertiary/50 cursor-pointer">
+                    <Td mono className="text-fg font-medium whitespace-nowrap">{s.code}</Td>
+                    <Td><StatusBadge status={dirOf(s, mine)} /></Td>
+                    <Td>
+                      <div className="flex items-center gap-1.5">
+                        <WorldBadge worldId={s.origin} size="sm" dot={false} />
+                        <Icon name="arrow" size={12} className="text-fg-muted" />
+                        <WorldBadge worldId={s.dest} size="sm" dot={false} />
+                      </div>
+                    </Td>
+                    <Td className="text-fg-secondary text-[13px]/[1.5]">
+                      <span className="line-clamp-1">{s.manifest.map(m => `${m.qty} ${m.res}`).join(', ')}</span>
+                    </Td>
+                    <Td mono className="text-fg-muted text-[12px]/[1.45] whitespace-nowrap">{s.departure}</Td>
+                    <Td mono className="text-fg-muted text-[12px]/[1.45] whitespace-nowrap">{s.eta}</Td>
+                    <Td><StatusBadge status={s.status} pulse={s.status === 'Delayed'} /></Td>
+                    <Td>
+                      {s.flagged && <span className="w-2 h-2 rounded-sm bg-critical inline-block animate-pulse-crit" />}
+                    </Td>
+                  </tr>
+                ))}
+              </Table>
+            </div>
+
+            {/* Mobile: stacked cards */}
+            <div className="md:hidden divide-y divide-line">
               {list.map(s => (
-                <tr key={s.id} onClick={() => navigate(`${BASE}/shipments/${s.id}`)}
-                  className="border-b border-line last:border-0 hover:bg-bg-tertiary/50 cursor-pointer">
-                  <Td mono className="text-fg font-medium">{s.code}</Td>
-                  <Td><StatusBadge status={dirOf(s, mine)} /></Td>
-                  <Td>
-                    <div className="flex items-center gap-1.5">
-                      <WorldBadge worldId={s.origin} size="sm" dot={false} />
-                      <Icon name="arrow" size={12} className="text-fg-muted" />
-                      <WorldBadge worldId={s.dest} size="sm" dot={false} />
+                <button key={s.id} onClick={() => navigate(`${BASE}/shipments/${s.id}`)}
+                  className="w-full text-left p-4 hover:bg-bg-tertiary/50 cursor-pointer">
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono text-sm text-fg font-medium truncate">{s.code}</span>
+                      {s.flagged && <span className="w-2 h-2 rounded-sm bg-critical inline-block shrink-0 animate-pulse-crit" />}
                     </div>
-                  </Td>
-                  <Td className="text-fg-secondary text-[13px]/[1.5]">
-                    <span className="line-clamp-1">{s.manifest.map(m => `${m.qty} ${m.res}`).join(', ')}</span>
-                  </Td>
-                  <Td mono className="text-fg-muted text-[12px]/[1.45]">{s.departure}</Td>
-                  <Td mono className="text-fg-muted text-[12px]/[1.45]">{s.eta}</Td>
-                  <Td><StatusBadge status={s.status} pulse={s.status === 'Delayed'} /></Td>
-                  <Td>
-                    {s.flagged && <span className="w-2 h-2 rounded-sm bg-critical inline-block animate-pulse-crit" />}
-                  </Td>
-                </tr>
+                    <StatusBadge status={s.status} pulse={s.status === 'Delayed'} />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                    <WorldBadge worldId={s.origin} size="sm" dot={false} />
+                    <Icon name="arrow" size={12} className="text-fg-muted" />
+                    <WorldBadge worldId={s.dest} size="sm" dot={false} />
+                    <StatusBadge status={dirOf(s, mine)} />
+                  </div>
+                  {s.manifest.length > 0 && (
+                    <div className="text-fg-secondary text-[13px]/[1.5] line-clamp-1 mb-1.5">
+                      {s.manifest.map(m => `${m.qty} ${m.res}`).join(', ')}
+                    </div>
+                  )}
+                  <div className="flex gap-4 text-[12px]/[1.45] font-mono text-fg-muted">
+                    <span>Dep {s.departure}</span>
+                    <span>ETA {s.eta}</span>
+                  </div>
+                </button>
               ))}
-            </Table>
-          </div>}
+            </div>
+          </>}
       </Card>
     </div>
   );

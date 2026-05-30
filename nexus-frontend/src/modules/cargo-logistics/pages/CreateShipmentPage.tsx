@@ -72,14 +72,14 @@ const CreateShipmentPage: React.FC = () => {
           </div>
           <div className="space-y-2">
             {items.map((it, i) => (
-              <div key={i} className="grid grid-cols-[1fr_90px_1.4fr_auto] gap-2 items-center">
+              <div key={i} className="flex flex-col gap-2 pb-3 border-b border-line last:border-0 sm:grid sm:grid-cols-[1fr_90px_1.4fr_auto] sm:items-center sm:gap-2 sm:pb-0 sm:border-0">
                 <Select options={RESOURCES} value={it.res} onChange={e => update(i, 'res', e.target.value)} />
                 <Input type="number" min="1" value={it.qty} onChange={e => update(i, 'qty', +e.target.value)} />
                 <Input value={it.notes} onChange={e => update(i, 'notes', e.target.value)} placeholder="Condition notes" />
                 <button
                   onClick={() => items.length > 1 && setItems(items.filter((_, idx) => idx !== i))}
                   disabled={items.length === 1}
-                  className="text-fg-muted hover:text-critical p-1.5 disabled:opacity-30"
+                  className="self-end sm:self-auto text-fg-muted hover:text-critical p-1.5 disabled:opacity-30"
                 >
                   <Icon name="x" size={15} />
                 </button>
@@ -88,7 +88,7 @@ const CreateShipmentPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Transport Reference (optional)">
             <Input value={ref} onChange={e => setRef(e.target.value)} placeholder="e.g. corridor lane ID" />
           </Field>
