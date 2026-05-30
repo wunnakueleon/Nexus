@@ -6,6 +6,7 @@ import Button from '../../../shared/components/Button';
 import Card from '../../../shared/components/Card';
 import EmptyState from '../../../shared/components/EmptyState';
 import LoadingState from '../../../shared/components/LoadingState';
+import Modal from '../../../shared/components/Modal';
 import PageHeader from '../../../shared/components/PageHeader';
 import SectionLabel from '../../../shared/components/SectionLabel';
 import ItemThumb from '../components/ItemThumb';
@@ -33,6 +34,7 @@ const TradeOfferPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [sel, setSel] = useState<number | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -46,7 +48,7 @@ const TradeOfferPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleSubmit = async () => {
+  const confirmOffer = async () => {
     if (!sel || !listing) return;
     setSubmitting(true);
     try {
@@ -57,11 +59,14 @@ const TradeOfferPage: React.FC = () => {
       flash('Failed to submit offer');
     } finally {
       setSubmitting(false);
+      setConfirming(false);
     }
   };
 
   if (loading) return <LoadingState />;
   if (!listing) return <EmptyState icon="market" text="Listing not found." />;
+
+  const selectedItem = available.find(i => i.id === sel) ?? null;
 
   return (
     <div className="max-w-4xl">
@@ -100,10 +105,44 @@ const TradeOfferPage: React.FC = () => {
         </Card>
       </div>
       <div className="flex justify-end mt-4">
-        <Button variant="solid" size="lg" icon="check" disabled={!sel || submitting} onClick={handleSubmit}>
-          {submitting ? 'Submitting...' : 'Submit Offer'}
+        <Button variant="solid" size="lg" icon="check" disabled={!sel} onClick={() => setConfirming(true)}>
+          Submit Offer
         </Button>
       </div>
+
+      {confirming && selectedItem && (
+        <Modal
+          title="Confirm Trade Offer"
+          onClose={() => !submitting && setConfirming(false)}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setConfirming(false)} disabled={submitting}>Cancel</Button>
+              <Button variant="solid" icon="check" onClick={confirmOffer} disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Confirm Offer'}
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm text-fg-secondary mb-4">Are you sure you want to make this trade?</p>
+          <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
+            <div className="text-center">
+              <div className="text-[10px]/[1.45] nx-uppercase text-fg-muted mb-1.5">You give</div>
+              <div className="flex flex-col items-center gap-1.5">
+                <ItemThumb icon={selectedItem.category} imageUrl={selectedItem.images[0]?.imageUrl} />
+                <span className="text-[12px]/[1.45] font-semibold text-fg line-clamp-2">{selectedItem.title}</span>
+              </div>
+            </div>
+            <Icon name="arrow" size={18} className="text-amber" />
+            <div className="text-center">
+              <div className="text-[10px]/[1.45] nx-uppercase text-fg-muted mb-1.5">You get</div>
+              <div className="flex flex-col items-center gap-1.5">
+                <ItemThumb icon={listing.category} imageUrl={listing.images[0]?.imageUrl} />
+                <span className="text-[12px]/[1.45] font-semibold text-fg line-clamp-2">{listing.title}</span>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
