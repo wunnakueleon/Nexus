@@ -31,3 +31,12 @@ export const updateListing = (id: number, data: UpdateListingInput): Promise<Lis
 
 export const deleteListing = (id: number): Promise<void> =>
   api.delete(`${BASE}/${id}`).then(r => r.data);
+
+// Uploads image files (multipart) to disk on the backend; returns their public URLs
+export const uploadImages = (files: File[]): Promise<string[]> => {
+  const form = new FormData();
+  files.forEach(f => form.append('images', f));
+  return api
+    .post('/api/commercial-marketplace/uploads', form)
+    .then(r => r.data.urls as string[]);
+};

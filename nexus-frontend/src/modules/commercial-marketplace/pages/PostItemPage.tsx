@@ -9,36 +9,10 @@ import { Input, Textarea, Select } from '../../../shared/components/Field';
 import Icon from '../../../shared/components/Icon';
 import LoadingState from '../../../shared/components/LoadingState';
 import PageHeader from '../../../shared/components/PageHeader';
-import { createListing, getListingById, updateListing } from '../apis/listing.api';
+import { createListing, getListingById, updateListing, uploadImages } from '../apis/listing.api';
 import { postItemSchema, LISTING_CATEGORIES, LISTING_CONDITIONS, type PostItemFormValues } from '../schemas/listing.schema';
 
 const BASE = '/commercial-marketplace';
-
-// Compress an image file to a small base64 data URL so it fits in a JSON body
-// and persists directly in the ListingImage.imageUrl column (no file storage).
-const fileToCompressedDataUrl = (file: File, maxDim = 800, quality = 0.7): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('read failed'));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('decode failed'));
-      img.onload = () => {
-        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('no canvas context'));
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
 
 const ErrMsg: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? <p className="text-[11px]/[1.45] text-critical mt-1 font-mono">{msg}</p> : null;
@@ -53,9 +27,10 @@ const PostItemPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // base64 data URLs — used for both preview and submission
+  // server URLs of uploaded images — used for both preview and submission
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(isEdit);
+  const [uploading, setUploading] = useState(false);
 
   const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<PostItemFormValues>({
     resolver: zodResolver(postItemSchema),
@@ -77,12 +52,16 @@ const PostItemPage: React.FC = () => {
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setUploading(true);
     try {
-      const dataUrls = await Promise.all(files.map(f => fileToCompressedDataUrl(f)));
+      const urls = await uploadImages(files);
       // Append to existing photos (cap at 4) so adding one at a time accumulates
-      setImages(prev => [...prev, ...dataUrls].slice(0, 4));
+      setImages(prev => [...prev, ...urls].slice(0, 4));
     } catch {
-      flash('Could not process one of the images');
+      flash('Could not upload one of the images');
+    } finally {
+      setUploading(false);
     }
     e.target.value = ''; // allow re-selecting the same file
   };
@@ -121,10 +100,10 @@ const PostItemPage: React.FC = () => {
             <Label>Photos</Label>
             <p className="text-[11px]/[1.45] text-fg-muted mb-2 font-mono">up to 4 — first is primary</p>
             <div className="grid grid-cols-5 gap-2">
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="aspect-square border border-dashed border-line-hover rounded flex flex-col items-center justify-center text-fg-muted hover:border-amber hover:text-amber cursor-pointer transition-colors">
+              <button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()}
+                className="aspect-square border border-dashed border-line-hover rounded flex flex-col items-center justify-center text-fg-muted hover:border-amber hover:text-amber cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-wait">
                 <Icon name="plus" size={18} />
-                <span className="text-[9px]/[1.4] font-mono mt-1 nx-uppercase">Add</span>
+                <span className="text-[9px]/[1.4] font-mono mt-1 nx-uppercase">{uploading ? '...' : 'Add'}</span>
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
               {Array.from({ length: 4 }).map((_, i) => (
