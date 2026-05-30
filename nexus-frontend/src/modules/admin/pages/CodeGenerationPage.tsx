@@ -6,6 +6,7 @@ import PageHeader from '../../../shared/components/PageHeader';
 import SectionLabel from '../../../shared/components/SectionLabel';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import { Table, Td } from '../../../shared/components/Table';
+import { useApp } from '../../../shared/hooks/useApp';
 import { fetchAccessCodes, generateAccessCodes, expireAccessCode } from '../apis/code.api';
 import { fetchWorlds } from '../apis/world.api';
 import type { AccessCodeRole, AccessCodeRow, AdminWorldSummary } from '../types/admin.types';
@@ -66,6 +67,7 @@ const CodeGenerationPage: React.FC = () => {
   const [fWorld, setFWorld] = useState('All');
   const [fRole, setFRole] = useState('All');
   const [fStatus, setFStatus] = useState('All');
+  const { flash } = useApp();
 
   const worldMap = useMemo(
     () => Object.fromEntries(worlds.map(w => [w.id, w])),
@@ -127,6 +129,15 @@ const CodeGenerationPage: React.FC = () => {
       setError('Unable to expire code.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onCopy = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      flash('Code copied');
+    } catch {
+      setError('Unable to copy code.');
     }
   };
 
@@ -196,7 +207,20 @@ const CodeGenerationPage: React.FC = () => {
             : <Table headers={['Code', 'World', 'Role', 'Status', 'Used By', { label: 'Created' }, { label: '', align: 'right' }]}>
                 {filtered.map(c => (
                   <tr key={c.id} className="border-b border-line last:border-0 hover:bg-bg-tertiary/40">
-                    <Td mono className="text-fg font-medium whitespace-nowrap">{c.code}</Td>
+                    <Td mono className="text-fg font-medium whitespace-nowrap">
+                      <div className="inline-flex items-center gap-2">
+                        <span>{c.code}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon="copy"
+                          className="px-1.5 py-1"
+                          onClick={() => onCopy(c.code)}
+                          aria-label="Copy code"
+                          title="Copy"
+                        />
+                      </div>
+                    </Td>
                     <Td className="whitespace-nowrap">
                       {worldMap[c.worldId]
                         ? <WorldPill world={worldMap[c.worldId]} />

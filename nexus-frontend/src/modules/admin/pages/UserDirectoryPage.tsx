@@ -72,7 +72,7 @@ const UserDirectoryPage: React.FC = () => {
   useEffect(() => { void loadData(); }, [loadData]);
 
   const filtered = useMemo(() => users.filter(u =>
-    (q === '' || u.name.toLowerCase().includes(q.toLowerCase())) &&
+    (q === '' || u.name.toLowerCase().includes(q.toLowerCase()) || u.username.toLowerCase().includes(q.toLowerCase())) &&
     (fWorld === 'All' || String(u.worldId) === fWorld) &&
     (fRole === 'All' || ROLE_LABELS[u.role] === fRole) &&
     (fStatus === 'All' || STATUS_LABELS[u.status] === fStatus),
@@ -128,10 +128,11 @@ const UserDirectoryPage: React.FC = () => {
             ? <div className="px-4 py-4 text-sm text-fg-secondary">Loading users...</div>
             : filtered.length === 0
               ? <EmptyState icon="users" text="No operators match." />
-              : <Table headers={['Name', 'World', 'Role', 'Status', { label: 'Approved' }, { label: 'Action', align: 'right' }]}>
+              : <Table headers={['Name', 'Username', 'World', 'Role', 'Status', { label: 'Approved' }, { label: 'Action', align: 'right' }]}>
                   {filtered.map(u => (
                     <tr key={u.id} className="border-b border-line last:border-0 hover:bg-bg-tertiary/40">
                       <Td className="font-semibold text-fg whitespace-nowrap">{u.name}</Td>
+                      <Td mono className="text-fg-secondary whitespace-nowrap">{u.username}</Td>
                       <Td className="whitespace-nowrap">
                         {worldMap[u.worldId]
                           ? <WorldPill world={worldMap[u.worldId]} />

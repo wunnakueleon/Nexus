@@ -25,6 +25,7 @@ const PATHS: Record<string, React.ReactNode> = {
   chevron:   <g {...p}><path d="M9 6l6 6-6 6"/></g>,
   down:      <g {...p}><path d="M6 9l6 6 6-6"/></g>,
   box:       <g {...p}><rect x="4" y="4" width="16" height="16"/></g>,
+  copy:      <g {...p}><rect x="9" y="9" width="10" height="12" rx="1.5"/><path d="M5 15V5h10"/><path d="M5 5l4-4"/></g>,
   power:     <g {...p}><path d="M12 4v8M7 7a7 7 0 1010 0"/></g>,
   tools:     <g {...p}><path d="M14 6a3 3 0 00-4 4l-6 6 2 2 6-6a3 3 0 004-4l-2 2-2-2 2-2z"/></g>,
   food:      <g {...p}><path d="M6 3v8a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 5 2 6M18 3v18"/></g>,

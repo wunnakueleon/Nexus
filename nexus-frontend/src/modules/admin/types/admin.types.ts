@@ -3,6 +3,7 @@ export type ApprovalAction = "approve" | "reject";
 export interface ApprovalQueueItem {
 	id: number;
 	name: string;
+	username: string;
 	role: string;
 	worldId: number;
 	worldName: string;
@@ -57,6 +58,7 @@ export interface WorldRequestRow {
 export interface ApprovalHistoryItem {
 	id: number;
 	name: string;
+	username: string;
 	role: AccessCodeRole;
 	worldId: number;
 	worldName: string;
@@ -67,6 +69,7 @@ export interface ApprovalHistoryItem {
 export interface UserDirectoryRow {
 	id: number;
 	name: string;
+	username: string;
 	role: AccessCodeRole;
 	worldId: number;
 	worldName: string;

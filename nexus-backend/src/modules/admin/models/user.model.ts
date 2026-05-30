@@ -14,6 +14,7 @@ export const listDirectoryUsers = async (): Promise<UserDirectoryRow[]> => {
 	return users.map(user => ({
 		id: user.id,
 		name: user.name,
+		username: user.username,
 		role: user.role as UserDirectoryRow["role"],
 		worldId: user.worldId,
 		worldName: user.world.name,
@@ -39,6 +40,7 @@ export const updateUserStatus = async (
 	return {
 		id: updated.id,
 		name: updated.name,
+		username: updated.username,
 		role: updated.role as UserDirectoryRow["role"],
 		worldId: updated.worldId,
 		worldName: updated.world.name,

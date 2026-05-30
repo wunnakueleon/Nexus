@@ -11,6 +11,7 @@ export const getPendingApprovals = async (): Promise<ApprovalQueueItem[]> => {
 	return users.map(user => ({
 		id: user.id,
 		name: user.name,
+		username: user.username,
 		role: user.role,
 		worldId: user.worldId,
 		worldName: user.world.name,
@@ -51,6 +52,7 @@ export const getApprovalHistory = async (): Promise<ApprovalHistoryItem[]> => {
 	return users.map(user => ({
 		id: user.id,
 		name: user.name,
+		username: user.username,
 		role: user.role as ApprovalHistoryItem["role"],
 		worldId: user.worldId,
 		worldName: user.world.name,

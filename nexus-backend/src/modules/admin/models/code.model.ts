@@ -35,7 +35,7 @@ export const listAccessCodes = async (): Promise<AccessCodeRow[]> => {
 		worldName: row.world.name,
 		role: row.role as AccessCodeRole,
 		status: row.status as AccessCodeRow["status"],
-		usedBy: row.usedBy?.name ?? null,
+		usedBy: row.usedBy?.username ?? null,
 		createdAt: row.createdAt,
 	}));
 };
@@ -88,7 +88,7 @@ export const generateAccessCodes = async (
 		worldName: row.world.name,
 		role: row.role as AccessCodeRole,
 		status: row.status as AccessCodeRow["status"],
-		usedBy: row.usedBy?.name ?? null,
+		usedBy: row.usedBy?.username ?? null,
 		createdAt: row.createdAt,
 	}));
 };
@@ -110,7 +110,7 @@ export const expireAccessCode = async (id: number): Promise<AccessCodeRow | null
 		worldName: updated.world.name,
 		role: updated.role as AccessCodeRole,
 		status: updated.status as AccessCodeRow["status"],
-		usedBy: updated.usedBy?.name ?? null,
+		usedBy: updated.usedBy?.username ?? null,
 		createdAt: updated.createdAt,
 	};
 };

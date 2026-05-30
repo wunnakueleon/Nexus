@@ -54,6 +54,7 @@ const ApprovalQueue: React.FC = () => {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
 
+  const [qPending, setQPending] = useState('');
   const [q, setQ] = useState('');
   const [fWorld, setFWorld] = useState('All');
   const [fRole, setFRole] = useState('All');
@@ -103,21 +104,29 @@ const ApprovalQueue: React.FC = () => {
     }
   };
 
-  const hasRows = rows.length > 0;
+  const pendingRows = useMemo(() => {
+    const query = qPending.toLowerCase();
+    return rows.filter(row =>
+      qPending === '' || row.name.toLowerCase().includes(query) || row.username.toLowerCase().includes(query),
+    );
+  }, [rows, qPending]);
+
+  const hasRows = pendingRows.length > 0;
   const tableRows = useMemo(
-    () => rows.map(row => ({
+    () => pendingRows.map(row => ({
       ...row,
       worldBadgeId: WORLD_NAME_TO_ID[row.worldName] ?? row.worldName,
       roleLabel: ROLE_LABELS[row.role] ?? row.role,
       submittedLabel: formatTimestamp(row.submittedAt),
     })),
-    [rows],
+    [pendingRows],
   );
 
   const historyRows = useMemo(
     () => history
       .filter(item => {
-        const nameMatch = q === '' || item.name.toLowerCase().includes(q.toLowerCase());
+        const query = q.toLowerCase();
+        const nameMatch = q === '' || item.name.toLowerCase().includes(query) || item.username.toLowerCase().includes(query);
         const worldMatch = fWorld === 'All' || String(item.worldId) === fWorld;
         const roleMatch = fRole === 'All' || ROLE_LABELS[item.role] === fRole;
         const statusMatch = fStatus === 'All' || (fStatus === 'Approved' ? item.status === 'approved' : item.status === 'rejected');
@@ -143,11 +152,22 @@ const ApprovalQueue: React.FC = () => {
           ? <div className="px-4 py-6 text-sm text-fg-secondary">Loading approval queue...</div>
           : !hasRows
             ? <EmptyState icon="users" text="No pending requests." sub="All access requests resolved" />
-            : <div className="px-3 pt-1 pb-1 overflow-x-auto">
-                <Table headers={['Applicant', 'World', 'Role', { label: 'Code' }, { label: 'Submitted' }, { label: 'Action', align: 'right' }]}>
+            : <div>
+                <div className="px-4 py-3 border-b border-line">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                    <div className="md:col-span-2">
+                      <Field label="Search">
+                        <Input value={qPending} onChange={e => setQPending(e.target.value)} placeholder="Search name or username" />
+                      </Field>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-3 pt-1 pb-1 overflow-x-auto">
+                <Table headers={['Applicant', 'Username', 'World', 'Role', { label: 'Code' }, { label: 'Submitted' }, { label: 'Action', align: 'right' }]}>
                   {tableRows.map(row => (
                     <tr key={row.id} className="border-b border-line last:border-0 hover:bg-bg-tertiary/40">
                       <Td className="font-semibold text-fg">{row.name}</Td>
+                      <Td mono className="text-fg-secondary">{row.username}</Td>
                       <Td><WorldBadge worldId={row.worldBadgeId} size="sm" /></Td>
                       <Td className="text-fg-secondary">{row.roleLabel}</Td>
                       <Td mono className="text-fg-secondary">{row.code}</Td>
@@ -177,6 +197,7 @@ const ApprovalQueue: React.FC = () => {
                     </tr>
                   ))}
                 </Table>
+                </div>
               </div>}
       </Card>
 
@@ -203,10 +224,11 @@ const ApprovalQueue: React.FC = () => {
             ? <div className="px-1 py-4 text-sm text-fg-secondary">Loading history...</div>
             : historyRows.length === 0
               ? <EmptyState icon="users" text="No history yet." sub="Resolved approvals will appear here." />
-              : <Table headers={['Applicant', 'World', 'Role', 'Status', { label: 'Resolved' }]}>
+              : <Table headers={['Applicant', 'Username', 'World', 'Role', 'Status', { label: 'Resolved' }]}>
                   {historyRows.map(item => (
                     <tr key={item.id} className="border-b border-line last:border-0 hover:bg-bg-tertiary/40">
                       <Td className="font-semibold text-fg">{item.name}</Td>
+                      <Td mono className="text-fg-secondary">{item.username}</Td>
                       <Td><WorldBadge worldId={item.worldBadgeId} size="sm" /></Td>
                       <Td className="text-fg-secondary">{item.roleLabel}</Td>
                       <Td><StatusBadge status={item.statusLabel} /></Td>
