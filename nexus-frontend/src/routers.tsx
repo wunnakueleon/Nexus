@@ -14,11 +14,11 @@ const mainRouter = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <OperatorSelect /> },
-      ...authRoutes,
       {
         // Shell is the persistent layout (sidebar + content) for all authenticated routes.
         element: <Shell />,
         children: [
+          ...authRoutes,
           ...adminRoutes,
           ...resourceExchangeRoutes,
           ...cargoLogisticsRoutes,
