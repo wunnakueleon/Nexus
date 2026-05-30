@@ -13,6 +13,32 @@ import { postItemSchema, LISTING_CATEGORIES, LISTING_CONDITIONS, type PostItemFo
 
 const BASE = '/commercial-marketplace';
 
+// Compress an image file to a small base64 data URL so it fits in a JSON body
+// and persists directly in the ListingImage.imageUrl column (no file storage).
+const fileToCompressedDataUrl = (file: File, maxDim = 800, quality = 0.7): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read failed'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('decode failed'));
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('no canvas context'));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+
 const ErrMsg: React.FC<{ msg?: string }> = ({ msg }) =>
   msg ? <p className="text-[11px]/[1.45] text-critical mt-1 font-mono">{msg}</p> : null;
 
@@ -24,28 +50,32 @@ const PostItemPage: React.FC = () => {
   const { flash } = useApp();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previews, setPreviews] = useState<string[]>([]);
+  // base64 data URLs — used for both preview and submission
+  const [images, setImages] = useState<string[]>([]);
 
   const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<PostItemFormValues>({
     resolver: zodResolver(postItemSchema),
     defaultValues: { category: 'tools', condition: 'used' },
   });
 
-  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).slice(0, 5);
-    setPreviews(files.map(f => URL.createObjectURL(f)));
+  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).slice(0, 4);
+    try {
+      const dataUrls = await Promise.all(files.map(f => fileToCompressedDataUrl(f)));
+      setImages(dataUrls);
+    } catch {
+      flash('Could not process one of the images');
+    }
+    e.target.value = ''; // allow re-selecting the same file
   };
 
-  const removePreview = (i: number) => {
-    setPreviews(prev => {
-      URL.revokeObjectURL(prev[i]);
-      return prev.filter((_, idx) => idx !== i);
-    });
+  const removeImage = (i: number) => {
+    setImages(prev => prev.filter((_, idx) => idx !== i));
   };
 
   const onSubmit = async (data: PostItemFormValues) => {
     try {
-      await createListing(data);
+      await createListing({ ...data, imageUrls: images });
       flash('Item posted to marketplace');
       navigate(`${BASE}/my-items`);
     } catch {
@@ -61,7 +91,7 @@ const PostItemPage: React.FC = () => {
 
           <div>
             <Label>Photos</Label>
-            <p className="text-[11px]/[1.45] text-fg-muted mb-2 font-mono">up to 5 — first is primary</p>
+            <p className="text-[11px]/[1.45] text-fg-muted mb-2 font-mono">up to 4 — first is primary</p>
             <div className="grid grid-cols-5 gap-2">
               <button type="button" onClick={() => fileInputRef.current?.click()}
                 className="aspect-square border border-dashed border-line-hover rounded flex flex-col items-center justify-center text-fg-muted hover:border-amber hover:text-amber cursor-pointer transition-colors">
@@ -71,10 +101,10 @@ const PostItemPage: React.FC = () => {
               <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="aspect-square bg-bg-input border border-line rounded overflow-hidden relative">
-                  {previews[i]
+                  {images[i]
                     ? <>
-                        <img src={previews[i]} alt="" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => removePreview(i)}
+                        <img src={images[i]} alt="" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => removeImage(i)}
                           className="absolute top-0.5 right-0.5 w-4 h-4 rounded-sm bg-bg-secondary/80 flex items-center justify-center text-fg-muted hover:text-critical">
                           <Icon name="x" size={10} />
                         </button>
