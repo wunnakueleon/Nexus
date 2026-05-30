@@ -18,8 +18,8 @@ const ShellInner: React.FC<ShellInnerProps> = ({ operator }) => {
     .map(([id, s]) => ({ id, label: s.label, icon: s.icon, path: s.path, end: s.end }));
 
   return (
-    <div className="flex min-h-screen">
-      {/* Mobile overlay backdrop */}
+    <>
+      {/* Mobile backdrop overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/60 z-20 md:hidden"
@@ -27,6 +27,7 @@ const ShellInner: React.FC<ShellInnerProps> = ({ operator }) => {
         />
       )}
 
+      {/* Sidebar — fixed, out of document flow */}
       <Sidebar
         feature={role.feature}
         featureIcon={role.icon}
@@ -37,7 +38,9 @@ const ShellInner: React.FC<ShellInnerProps> = ({ operator }) => {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="flex-1 md:ml-60 min-w-0">
+      {/* Main — full width on mobile, offset by sidebar on md+ */}
+      <div className="min-h-screen md:ml-60">
+
         {/* Mobile top bar */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-line bg-bg-secondary sticky top-0 z-10">
           <button
@@ -50,18 +53,15 @@ const ShellInner: React.FC<ShellInnerProps> = ({ operator }) => {
           <span className="text-sm font-semibold text-fg nx-uppercase tracking-wide">
             {role.feature}
           </span>
-          {operator.worldId && (
-            <span className="ml-auto text-xs font-mono text-fg-muted">
-              {operator.worldId}
-            </span>
-          )}
         </div>
 
+        {/* Page content */}
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           <Outlet />
         </div>
-      </main>
-    </div>
+
+      </div>
+    </>
   );
 };
 
