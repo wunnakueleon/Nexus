@@ -3,4 +3,6 @@ dist/
 .env
 dev.db
 src/generated/
+# Uploaded listing images (served from disk, not committed)
+uploads/
 .DS_Store
