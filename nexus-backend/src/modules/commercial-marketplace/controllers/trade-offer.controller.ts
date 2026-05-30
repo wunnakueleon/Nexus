@@ -77,6 +77,10 @@ export const create = async (req: Request, res: Response, next: NextFunction) =>
       res.status(403).json({ message: "You do not own the offered listing" });
       return;
     }
+    if (targetListing.userId === user.id) {
+      res.status(400).json({ message: "You cannot trade on your own listing" });
+      return;
+    }
 
     const offer = await TradeOfferModel.create({
       listingId,

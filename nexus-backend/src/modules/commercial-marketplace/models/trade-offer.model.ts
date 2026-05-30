@@ -5,15 +5,22 @@ import type { TradeOfferStatus } from "../../../generated/prisma/enums";
 // Reusable include — listing summary with primary image only
 // ---------------------------------------------------------------------------
 
+const safeUser = {
+  select: {
+    id: true, name: true,
+    world: { select: { id: true, name: true, colorHex: true } },
+  },
+};
+
 const listingSummary = {
   images: { where: { displayOrder: 1 }, take: 1 },
 };
 
 const offerDetail = {
-  listing: { include: { ...listingSummary, user: { include: { world: true } } } },
-  offeredListing: { include: { ...listingSummary, user: { include: { world: true } } } },
-  buyer: { include: { world: true } },
-  seller: { include: { world: true } },
+  listing:        { include: { ...listingSummary, user: safeUser } },
+  offeredListing: { include: { ...listingSummary, user: safeUser } },
+  buyer:   safeUser,
+  seller:  safeUser,
 };
 
 // ---------------------------------------------------------------------------
