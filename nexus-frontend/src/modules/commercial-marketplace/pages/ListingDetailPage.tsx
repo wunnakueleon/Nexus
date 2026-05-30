@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useApp } from '../../../shared/hooks/useApp';
 import Icon from '../../../shared/components/Icon';
 import Button from '../../../shared/components/Button';
 import EmptyState from '../../../shared/components/EmptyState';
@@ -22,14 +21,12 @@ const WorldTag: React.FC<{ name: string; color: string }> = ({ name, color }) =>
 const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { flash } = useApp();
 
   const [listing, setListing] = useState<ListingResponse | null>(null);
   const [isOwnListing, setIsOwnListing] = useState(false);
   const [hasAvailableItems, setHasAvailableItems] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [flagged, setFlagged] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -103,15 +100,6 @@ const ListingDetailPage: React.FC = () => {
                     <p className="text-sm text-fg-secondary mb-3">You need to post at least one item before you can trade.</p>
                     <Button variant="primary" icon="plus" onClick={() => navigate(`${BASE}/post`)}>Post Your First Item</Button>
                   </div>}
-          <div className="mt-4">
-            <button
-              disabled={flagged}
-              onClick={() => { setFlagged(true); flash('Listing flagged for review'); }}
-              className="text-[12px]/[1.45] font-mono text-fg-muted hover:text-fg-secondary nx-uppercase flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-default"
-            >
-              <Icon name="flag" size={13} />{flagged ? 'Flagged for Review' : 'Flag Listing'}
-            </button>
-          </div>
         </div>
       </div>
     </div>
