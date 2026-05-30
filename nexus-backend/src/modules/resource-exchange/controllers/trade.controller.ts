@@ -49,11 +49,11 @@ export const tradeController = {
       // Resolve requestedByUserId from DB if not supplied by client
       let requestedByUserId = parsed.data.requestedByUserId;
       if (!requestedByUserId) {
-        const user = await prisma.user.findFirst({
-          where: { worldId: parsed.data.fromWorldId, status: 'active' },
-        });
+        const user =
+          await prisma.user.findFirst({ where: { worldId: parsed.data.fromWorldId, status: 'active' } }) ??
+          await prisma.user.findFirst({ where: { status: 'active' } });
         if (!user) {
-          res.status(400).json({ success: false, message: 'No active user found for fromWorld' });
+          res.status(400).json({ success: false, message: 'No active user found in system' });
           return;
         }
         requestedByUserId = user.id;
@@ -79,7 +79,7 @@ export const tradeController = {
         return;
       }
 
-      // Resolve respondedByUserId from the trade's toWorld
+      // Resolve respondedByUserId — try toWorld first, fall back to any active user
       let respondedByUserId = parsed.data.respondedByUserId;
       if (!respondedByUserId) {
         const trade = await tradeModel.findById(id);
@@ -87,11 +87,11 @@ export const tradeController = {
           res.status(404).json({ success: false, message: 'Trade not found' });
           return;
         }
-        const user = await prisma.user.findFirst({
-          where: { worldId: trade.toWorldId, status: 'active' },
-        });
+        const user =
+          await prisma.user.findFirst({ where: { worldId: trade.toWorldId, status: 'active' } }) ??
+          await prisma.user.findFirst({ where: { status: 'active' } });
         if (!user) {
-          res.status(400).json({ success: false, message: 'No active user found for toWorld' });
+          res.status(400).json({ success: false, message: 'No active user found in system' });
           return;
         }
         respondedByUserId = user.id;
@@ -117,7 +117,7 @@ export const tradeController = {
         return;
       }
 
-      // Resolve respondedByUserId from the trade's toWorld
+      // Resolve respondedByUserId — try toWorld first, fall back to any active user
       let respondedByUserId = parsed.data.respondedByUserId;
       if (!respondedByUserId) {
         const trade = await tradeModel.findById(id);
@@ -125,11 +125,11 @@ export const tradeController = {
           res.status(404).json({ success: false, message: 'Trade not found' });
           return;
         }
-        const user = await prisma.user.findFirst({
-          where: { worldId: trade.toWorldId, status: 'active' },
-        });
+        const user =
+          await prisma.user.findFirst({ where: { worldId: trade.toWorldId, status: 'active' } }) ??
+          await prisma.user.findFirst({ where: { status: 'active' } });
         if (!user) {
-          res.status(400).json({ success: false, message: 'No active user found for toWorld' });
+          res.status(400).json({ success: false, message: 'No active user found in system' });
           return;
         }
         respondedByUserId = user.id;
