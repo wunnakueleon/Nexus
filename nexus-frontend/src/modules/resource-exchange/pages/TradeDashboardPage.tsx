@@ -33,8 +33,6 @@ interface RespondModalProps {
   onDone: () => void;
 }
 
-const DEMO_USER_ID = 1; // placeholder until auth is wired
-
 const RespondModal: React.FC<RespondModalProps> = ({ trade, action, onClose, onDone }) => {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,7 +41,7 @@ const RespondModal: React.FC<RespondModalProps> = ({ trade, action, onClose, onD
   const confirm = async () => {
     setLoading(true);
     try {
-      const payload = { respondedByUserId: DEMO_USER_ID, responseComment: comment };
+      const payload = { responseComment: comment };
       if (accept) {
         await tradeApi.accept(trade.id, payload);
       } else {

@@ -68,7 +68,7 @@ export interface CreateTradePayload {
 }
 
 export interface RespondTradePayload {
-  respondedByUserId: number;
+  respondedByUserId?: number;
   responseComment?: string;
 }
 

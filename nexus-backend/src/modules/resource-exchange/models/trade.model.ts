@@ -50,7 +50,7 @@ export const tradeModel = {
       include: tradeIncludes,
     }),
 
-  accept: (id: number, input: RespondTradeInput) =>
+  accept: (id: number, input: RespondTradeInput & { respondedByUserId: number }) =>
     prisma.tradeRequest.update({
       where: { id },
       data: {
@@ -62,7 +62,7 @@ export const tradeModel = {
       include: tradeIncludes,
     }),
 
-  decline: (id: number, input: RespondTradeInput) =>
+  decline: (id: number, input: RespondTradeInput & { respondedByUserId: number }) =>
     prisma.tradeRequest.update({
       where: { id },
       data: {

@@ -15,7 +15,7 @@ export const createTradeSchema = z.object({
 });
 
 export const respondTradeSchema = z.object({
-  respondedByUserId: z.number().int().positive(),
+  respondedByUserId: z.number().int().positive().optional(),
   responseComment: z.string().optional(),
 });
 

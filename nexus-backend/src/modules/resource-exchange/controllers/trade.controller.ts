@@ -78,7 +78,26 @@ export const tradeController = {
         res.status(400).json({ success: false, errors: parsed.error.issues });
         return;
       }
-      const data = await tradeModel.accept(id, parsed.data);
+
+      // Resolve respondedByUserId from the trade's toWorld
+      let respondedByUserId = parsed.data.respondedByUserId;
+      if (!respondedByUserId) {
+        const trade = await tradeModel.findById(id);
+        if (!trade) {
+          res.status(404).json({ success: false, message: 'Trade not found' });
+          return;
+        }
+        const user = await prisma.user.findFirst({
+          where: { worldId: trade.toWorldId, status: 'active' },
+        });
+        if (!user) {
+          res.status(400).json({ success: false, message: 'No active user found for toWorld' });
+          return;
+        }
+        respondedByUserId = user.id;
+      }
+
+      const data = await tradeModel.accept(id, { ...parsed.data, respondedByUserId });
       res.json({ success: true, data });
     } catch (err) {
       next(err);
@@ -97,7 +116,26 @@ export const tradeController = {
         res.status(400).json({ success: false, errors: parsed.error.issues });
         return;
       }
-      const data = await tradeModel.decline(id, parsed.data);
+
+      // Resolve respondedByUserId from the trade's toWorld
+      let respondedByUserId = parsed.data.respondedByUserId;
+      if (!respondedByUserId) {
+        const trade = await tradeModel.findById(id);
+        if (!trade) {
+          res.status(404).json({ success: false, message: 'Trade not found' });
+          return;
+        }
+        const user = await prisma.user.findFirst({
+          where: { worldId: trade.toWorldId, status: 'active' },
+        });
+        if (!user) {
+          res.status(400).json({ success: false, message: 'No active user found for toWorld' });
+          return;
+        }
+        respondedByUserId = user.id;
+      }
+
+      const data = await tradeModel.decline(id, { ...parsed.data, respondedByUserId });
       res.json({ success: true, data });
     } catch (err) {
       next(err);
