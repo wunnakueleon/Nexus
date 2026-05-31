@@ -78,16 +78,30 @@ const RouteOverviewPage: React.FC = () => {
               const t = traffic(a, b);
               const [x1, y1] = posA, [x2, y2] = posB;
               const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+
+              // Bow each corridor perpendicular to its straight path so the two
+              // that cross the centre (GLV↔WNM and MNU↔NPT) separate into
+              // distinct arcs instead of overlapping. The count badge sits on the
+              // arc's apex, which also keeps the two centre labels from colliding.
+              const dx = x2 - x1, dy = y2 - y1;
+              const len = Math.hypot(dx, dy) || 1;
+              const px = -dy / len, py = dx / len; // perpendicular unit vector
+              const BOW = 30;
+              const cx = mx + px * BOW * 2, cy = my + py * BOW * 2; // bezier control
+              const lx = mx + px * BOW, ly = my + py * BOW;         // arc apex (label)
+              const path = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+
               return (
                 <g key={a + b}>
-                  <line x1={x1} y1={y1} x2={x2} y2={y2}
+                  <path d={path} fill="none"
                     stroke={lineColor(t)}
                     strokeWidth={1.5 + t.n * 2}
-                    strokeOpacity={t.n ? 0.9 : 0.35} />
+                    strokeOpacity={t.n ? 0.9 : 0.35}
+                    strokeLinecap="round" />
                   {t.n > 0 && (
                     <>
-                      <rect x={mx - 11} y={my - 11} width="22" height="22" fill="#0D0F11" stroke={lineColor(t)} strokeWidth="1" rx="2" />
-                      <text x={mx} y={my + 4} textAnchor="middle" fontSize="13" fontFamily="JetBrains Mono" fill={lineColor(t)}>{t.n}</text>
+                      <rect x={lx - 11} y={ly - 11} width="22" height="22" fill="#0D0F11" stroke={lineColor(t)} strokeWidth="1" rx="2" />
+                      <text x={lx} y={ly + 4} textAnchor="middle" fontSize="13" fontFamily="JetBrains Mono" fill={lineColor(t)}>{t.n}</text>
                     </>
                   )}
                 </g>
