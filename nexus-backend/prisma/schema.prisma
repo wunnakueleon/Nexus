@@ -282,7 +282,7 @@ model TradeRequest {
   toWorld     World @relation("TradeRequestToWorld", fields: [toWorldId], references: [id])
   requestedBy User  @relation("TradeRequestedBy", fields: [requestedByUserId], references: [id])
   respondedBy User? @relation("TradeRespondedBy", fields: [respondedByUserId], references: [id])
-  shipment    Shipment? @relation("ShipmentFromTradeRequest")
+  shipments   Shipment[] @relation("ShipmentFromTradeRequest")
 }
 
 
@@ -298,7 +298,7 @@ model Shipment {
   destinationWorldId Int
   createdByUserId    Int?
   sourceType         ShipmentSourceType @default(manual)
-  tradeRequestId     Int?               @unique
+  tradeRequestId     Int?
   tradeOfferId       Int?               @unique
   transportReference String?
   status             ShipmentStatus     @default(preparing)

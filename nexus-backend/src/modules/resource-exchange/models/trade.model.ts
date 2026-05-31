@@ -18,6 +18,9 @@ const tradeIncludes = {
   toWorld:   { select: { id: true, name: true, colorHex: true } },
   requestedBy: { select: { id: true, name: true } },
   respondedBy: { select: { id: true, name: true } },
+  // Delivery legs (both directions) so the dashboard can show progress and the
+  // trade auto-fulfills once every leg is delivered.
+  shipments: { select: { status: true } },
 };
 
 export const tradeModel = {

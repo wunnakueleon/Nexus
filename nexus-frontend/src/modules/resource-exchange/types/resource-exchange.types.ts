@@ -53,6 +53,8 @@ export interface TradeRequestRow {
   toWorld: WorldSummary;
   requestedBy: UserSummary;
   respondedBy: UserSummary | null;
+  // Delivery legs of the trade (both directions); present once accepted.
+  shipments?: { status: string }[];
 }
 
 export interface CreateTradePayload {

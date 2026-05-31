@@ -10,6 +10,7 @@ import {
     cancelShipment,
     createShipment,
     deliverShipment,
+    fulfillTradeIfFullyDelivered,
     getRouteOverview,
     getShipmentById,
     listShipments,
@@ -140,6 +141,15 @@ export async function deliverShipmentHandler(
         if (!updated) return void next(appError(400, "Shipment cannot be delivered from its current status"));
 
         emitShipmentUpdated();
+
+        // If this was the final leg of a resource trade, auto-fulfill it and let
+        // the trade dashboard move it to History without a manual "Mark Fulfilled".
+        const fulfilledTradeId = await fulfillTradeIfFullyDelivered(id);
+        if (fulfilledTradeId !== null) {
+            emitTo(roleRoom("resource_manager"), Events.TradeUpdated);
+            emitTo(roleRoom("admin"), Events.TradeUpdated);
+        }
+
         res.json(updated);
     } catch (err) {
         next(err);

@@ -125,10 +125,12 @@ export async function createShipmentFromResourceTrade(trade: {
     );
     const counter = await createShipment(
         {
-            // Requester ships the resource it offered in return.
+            // Requester ships the resource it offered in return. Both legs link to
+            // the trade so it can auto-fulfill once both are delivered.
             originWorldId: trade.fromWorldId,
             destinationWorldId: trade.toWorldId,
             sourceType: ShipmentSourceType.resource_trade,
+            tradeRequestId: trade.id,
             items: [{ resourceType: trade.resourceOffered, quantity: trade.quantityOffered }],
         },
         createdBy,
@@ -243,6 +245,34 @@ export async function deliverShipment(
 
         return tx.shipment.findUnique({ where: { id }, include: DETAIL_INCLUDE });
     }) as Promise<ShipmentDetail | null>;
+}
+
+// After a resource-trade shipment is delivered, auto-fulfill the parent trade
+// once every shipment of that trade has been delivered (both directions). Returns
+// the fulfilled trade's id so the caller can broadcast it, or null if nothing
+// changed (no linked trade, not all delivered, or already fulfilled).
+export async function fulfillTradeIfFullyDelivered(shipmentId: number): Promise<number | null> {
+    const shipment = await prisma.shipment.findUnique({
+        where: { id: shipmentId },
+        select: { tradeRequestId: true },
+    });
+    if (!shipment?.tradeRequestId) return null;
+
+    const tradeRequestId = shipment.tradeRequestId;
+    const legs = await prisma.shipment.findMany({
+        where: { tradeRequestId },
+        select: { status: true },
+    });
+    const allDelivered =
+        legs.length > 0 && legs.every((s) => s.status === ShipmentStatus.delivered);
+    if (!allDelivered) return null;
+
+    // Idempotent: only flip a still-accepted trade to fulfilled.
+    const result = await prisma.tradeRequest.updateMany({
+        where: { id: tradeRequestId, status: "accepted" },
+        data: { status: "fulfilled", fulfilledAt: new Date() },
+    });
+    return result.count > 0 ? tradeRequestId : null;
 }
 
 export async function cancelShipment(

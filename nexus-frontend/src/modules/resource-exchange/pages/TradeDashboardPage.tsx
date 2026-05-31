@@ -149,7 +149,13 @@ const TradeDashboardPage: React.FC = () => {
   ];
 
   const cancel  = async (id: number) => { await tradeApi.cancel(id);  fetchAll(); };
-  const fulfill = async (id: number) => { await tradeApi.fulfill(id); fetchAll(); };
+
+  // Trades now fulfil automatically once both delivery shipments arrive — count
+  // delivered legs so the Active card can show progress.
+  const deliveryProgress = (trade: TradeRequestRow) => {
+    const legs = trade.shipments ?? [];
+    return { delivered: legs.filter(s => s.status === 'delivered').length, total: legs.length };
+  };
 
   if (loading) return <LoadingState />;
 
@@ -259,9 +265,19 @@ const TradeDashboardPage: React.FC = () => {
                     )}
                     <div className="border-t border-line pt-3 mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <span className="text-[12px]/[1.45] font-mono text-fg-muted">{fmtDateTime(t.createdAt)}</span>
-                      <Button size="sm" variant="primary" icon="check" onClick={() => fulfill(t.id)}>
-                        Mark Fulfilled
-                      </Button>
+                      {(() => {
+                        const { delivered, total } = deliveryProgress(t);
+                        const done = total > 0 && delivered === total;
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Icon name="cargo" size={14} className={done ? 'text-stable' : 'text-fg-muted'} />
+                            <span className="text-[12px]/[1.45] font-mono text-fg-secondary">
+                              {delivered} / {total || 2} shipments delivered
+                            </span>
+                            <span className="text-[11px]/[1.45] nx-uppercase text-fg-muted">· auto-fulfils on delivery</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </Card>
                 ))}
