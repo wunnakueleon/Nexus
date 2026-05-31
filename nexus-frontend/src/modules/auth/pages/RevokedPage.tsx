@@ -11,7 +11,7 @@ const RevokedPage = () => {
         <Card className="w-full p-6 sm:p-7 text-center">
           <div className="text-sm font-semibold text-critical nx-uppercase mb-3">Access Revoked</div>
           <p className="text-sm text-fg-secondary">
-            Your access has been revoked. Contact the admin authority for reinstatement once your world is cleared.
+            Your access has been revoked. Contact your administration to have your account reinstated.
           </p>
         </Card>
 

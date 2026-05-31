@@ -106,6 +106,14 @@ const UserDirectoryPage: React.FC = () => {
       <Card>
         {error && <div className="px-4 pt-4 text-xs text-critical font-mono">{error}</div>}
 
+        {/* Operator count — reflects the active filters */}
+        <div className="px-4 pt-3 text-[13px]/[1.5] text-fg-secondary">
+          <span className="font-mono font-semibold text-fg tnum">{filtered.length}</span> operators
+          {filtered.length !== users.length && (
+            <span className="text-fg-muted"> of {users.length}</span>
+          )}
+        </div>
+
         {/* Filter bar — search + dropdowns in a single scrollable row */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-line overflow-x-auto">
           <div className="relative shrink-0 w-48">
