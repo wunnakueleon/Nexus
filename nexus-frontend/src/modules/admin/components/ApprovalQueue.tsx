@@ -62,42 +62,41 @@ const ApprovalQueue: React.FC = () => {
   const [fRole, setFRole] = useState('All');
   const [fStatus, setFStatus] = useState('All');
 
-  const loadApprovals = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    setError(null);
-    try {
-      const [queueData, historyData, worldData] = await Promise.all([
-        fetchApprovalQueue(),
-        fetchApprovalHistory(),
-        fetchWorlds(),
-      ]);
-      if (!Array.isArray(queueData)) {
+  // State is set only in the promise callbacks (never synchronously), so the
+  // mount effect doesn't cause a cascading render. The loading flags start true.
+  const loadApprovals = useCallback(() => {
+    Promise.all([fetchApprovalQueue(), fetchApprovalHistory(), fetchWorlds()])
+      .then(([queueData, historyData, worldData]) => {
+        if (!Array.isArray(queueData)) {
+          setRows([]);
+          setError("Approval queue payload invalid.");
+        } else {
+          setRows(queueData);
+          setError(null);
+        }
+        setHistory(Array.isArray(historyData) ? historyData : []);
+        setWorlds(worldData);
+      })
+      .catch(() => {
         setRows([]);
-        setError("Approval queue payload invalid.");
-      } else {
-        setRows(queueData);
-      }
-      setHistory(Array.isArray(historyData) ? historyData : []);
-      setWorlds(worldData);
-    } catch (err) {
-      setRows([]);
-      setHistory([]);
-      setError("Unable to load approval queue.");
-    } finally {
-      setLoading(false);
-      setHistoryLoading(false);
-    }
+        setHistory([]);
+        setError("Unable to load approval queue.");
+      })
+      .finally(() => {
+        setLoading(false);
+        setHistoryLoading(false);
+      });
   }, []);
 
   useEffect(() => {
-    void loadApprovals();
+    loadApprovals();
   }, [loadApprovals]);
 
   // Live updates: a new signup, or another admin resolving a request, refreshes
   // both the pending queue and the resolution history without a manual reload.
   useSocketEvent(
     [SOCKET_EVENTS.ApprovalCreated, SOCKET_EVENTS.ApprovalUpdated, SOCKET_EVENTS.UserUpdated],
-    () => void loadApprovals(true),
+    () => loadApprovals(),
   );
 
   const handleResolve = async (id: number, action: ApprovalAction) => {

@@ -37,11 +37,11 @@ const BrowseMarketplacePage: React.FC = () => {
   const [cond, setCond] = useState<ListingCondition | 'All'>('All');
 
   // Fetch the full board; all filtering is client-side below.
-  const load = useCallback((silent = false) => {
-    if (!silent) setLoading(true);
-    setError(null);
+  // State is set only in the promise callbacks (never synchronously), so the
+  // mount effect doesn't cause a cascading render. `loading` starts true.
+  const load = useCallback(() => {
     getListings()
-      .then(data => setListings(Array.isArray(data) ? data : []))
+      .then(data => { setListings(Array.isArray(data) ? data : []); setError(null); })
       .catch(() => setError('Failed to load listings.'))
       .finally(() => setLoading(false));
   }, []);
@@ -50,7 +50,7 @@ const BrowseMarketplacePage: React.FC = () => {
 
   // Any citizen posting, editing, removing, or trading an item changes the
   // shared board — refresh quietly so listings appear/disappear live.
-  useSocketEvent(SOCKET_EVENTS.ListingUpdated, () => load(true));
+  useSocketEvent(SOCKET_EVENTS.ListingUpdated, () => load());
 
   // World options derived from real listing data (numeric backend IDs)
   const worldOptions = useMemo(() => {

@@ -75,16 +75,19 @@ const ShipmentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const mine = operator?.worldId ?? '';
-  const [shipment, setShipment] = useState<DetailView | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [flagOpen, setFlagOpen] = useState(false);
-  const [flagText, setFlagText] = useState('');
 
   const numericId = Number(id);
   const isApiId = Number.isInteger(numericId) && numericId > 0;
 
+  const [shipment, setShipment] = useState<DetailView | null>(null);
+  // Start loading only for a valid id; an invalid id is "not found" immediately,
+  // so the effect never needs to set loading synchronously.
+  const [loading, setLoading] = useState(isApiId);
+  const [flagOpen, setFlagOpen] = useState(false);
+  const [flagText, setFlagText] = useState('');
+
   const load = useCallback(() => {
-    if (!isApiId) { setLoading(false); return; }
+    if (!isApiId) return;
     getShipment(numericId)
       .then(data => setShipment(adaptDetail(data)))
       .catch(() => setShipment(null))

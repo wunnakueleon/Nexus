@@ -37,7 +37,10 @@ const RequestTradePage: React.FC = () => {
     [worlds, myWorldName],
   );
 
+  // The "To" world: the user's explicit pick, falling back to the first option.
+  // Derived rather than synced via an effect, so there's no setState-in-effect.
   const [toWorldStrId, setToWorldStrId] = useState<string>('');
+  const selectedTo = toWorldStrId || otherWorlds[0]?.id || '';
   const [wantRes,  setWantRes]  = useState<ResourceType>('fuel');
   const [wantQty,  setWantQty]  = useState(1000);
   const [offerRes, setOfferRes] = useState<ResourceType>('food');
@@ -45,15 +48,9 @@ const RequestTradePage: React.FC = () => {
   const [urgency,  setUrgency]  = useState<TradeUrgency>('normal');
   const [comment,  setComment]  = useState('');
 
-  useEffect(() => {
-    if (!toWorldStrId && otherWorlds.length > 0) {
-      setToWorldStrId(otherWorlds[0].id);
-    }
-  }, [otherWorlds, toWorldStrId]);
-
   const submit = async () => {
-    if (!myDbWorldId || !toWorldStrId) return;
-    const toWorldName = worldById(toWorldStrId).name;
+    if (!myDbWorldId || !selectedTo) return;
+    const toWorldName = worldById(selectedTo).name;
     const toDbWorldId = nameToDbId[toWorldName];
     if (!toDbWorldId) return;
 
@@ -93,7 +90,7 @@ const RequestTradePage: React.FC = () => {
           <Field label="To">
             <Select
               options={otherWorlds.map(w => ({ value: w.id, label: w.name }))}
-              value={toWorldStrId}
+              value={selectedTo}
               onChange={e => setToWorldStrId(e.target.value)}
             />
           </Field>

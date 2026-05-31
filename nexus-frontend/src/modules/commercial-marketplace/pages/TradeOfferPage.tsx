@@ -36,9 +36,9 @@ const TradeOfferPage: React.FC = () => {
   const [sel, setSel] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
 
+  // `loading` already starts true, so the effect needn't set it synchronously.
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
     Promise.all([getListingById(Number(id)), getMyListings()])
       .then(([l, mine]) => {
         setListing(l);

@@ -43,32 +43,32 @@ const WorldManagementPage: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('#7A8C3A');
 
-  const loadData = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    setError(null);
-    try {
-      const [worldList, pendingList, historyList] = await Promise.all([
-        fetchWorlds(),
-        fetchPendingWorldRequests(),
-        fetchWorldRequestHistory(),
-      ]);
-      setWorlds(worldList);
-      setPending(pendingList);
-      setHistory(historyList);
-    } catch (err) {
-      setError('Unable to load world management data.');
-    } finally {
-      setLoading(false);
-    }
+  // State is set only in the promise callbacks (never synchronously), so the
+  // mount effect doesn't cause a cascading render. `loading` starts true. The
+  // promise is returned so action handlers can await a refresh.
+  const loadData = useCallback(() => {
+    return Promise.all([
+      fetchWorlds(),
+      fetchPendingWorldRequests(),
+      fetchWorldRequestHistory(),
+    ])
+      .then(([worldList, pendingList, historyList]) => {
+        setWorlds(worldList);
+        setPending(pendingList);
+        setHistory(historyList);
+        setError(null);
+      })
+      .catch(() => setError('Unable to load world management data.'))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    void loadData();
+    loadData();
   }, [loadData]);
 
   // Another admin submitting/resolving a world request, or editing a world,
   // refreshes the active list, pending cards and history together.
-  useSocketEvent(SOCKET_EVENTS.WorldUpdated, () => void loadData(true));
+  useSocketEvent(SOCKET_EVENTS.WorldUpdated, () => loadData());
 
   const activeWorlds = useMemo(() => worlds.filter(w => w.status === 'active'), [worlds]);
 

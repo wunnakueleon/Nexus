@@ -76,29 +76,29 @@ const CodeGenerationPage: React.FC = () => {
     [worlds],
   );
 
-  const loadData = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    setError(null);
-    try {
-      const [worldList, codeList] = await Promise.all([fetchWorlds(), fetchAccessCodes()]);
-      setWorlds(worldList);
-      setCodes(codeList);
-      const firstActive = worldList.find(w => w.status === 'active');
-      if (firstActive && !world) setWorld(String(firstActive.id));
-    } catch {
-      setError('Unable to load access codes.');
-    } finally {
-      setLoading(false);
-    }
+  // State updates live in the promise callbacks (not the synchronous body), so
+  // the effect that calls this never sets state synchronously. `loading` starts
+  // true and is only cleared in `finally`, so refreshes don't flash the spinner.
+  const loadData = useCallback(() => {
+    Promise.all([fetchWorlds(), fetchAccessCodes()])
+      .then(([worldList, codeList]) => {
+        setWorlds(worldList);
+        setCodes(codeList);
+        setError(null); // clear any prior error once a refresh succeeds
+        const firstActive = worldList.find(w => w.status === 'active');
+        if (firstActive && !world) setWorld(String(firstActive.id));
+      })
+      .catch(() => setError('Unable to load access codes.'))
+      .finally(() => setLoading(false));
   }, [world]);
 
-  useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   // Codes generated/expired by any admin, and world edits (which rename the
   // world pills), keep the issued-codes table current for everyone.
   useSocketEvent(
     [SOCKET_EVENTS.CodeUpdated, SOCKET_EVENTS.WorldUpdated],
-    () => void loadData(true),
+    () => void loadData(),
   );
 
   const activeWorlds = useMemo(() => worlds.filter(w => w.status === 'active'), [worlds]);

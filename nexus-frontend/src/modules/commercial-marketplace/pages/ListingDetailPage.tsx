@@ -31,9 +31,10 @@ const ListingDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback((silent = false) => {
+  // State is set only in the promise callbacks (never synchronously), so the
+  // mount effect doesn't cause a cascading render. `loading` starts true.
+  const load = useCallback(() => {
     if (!id) return;
-    if (!silent) setLoading(true);
     Promise.all([getListingById(Number(id)), getMyListings()])
       .then(([l, mine]) => {
         setListing(l);
@@ -50,7 +51,7 @@ const ListingDetailPage: React.FC = () => {
 
   // If this listing gets locked into a pending trade or traded away while being
   // viewed, the availability panel/CTA updates live.
-  useSocketEvent(SOCKET_EVENTS.ListingUpdated, () => load(true));
+  useSocketEvent(SOCKET_EVENTS.ListingUpdated, () => load());
 
   if (loading) return <LoadingState />;
   if (error || !listing) return <EmptyState icon="market" text={error ?? 'Listing not found.'} />;

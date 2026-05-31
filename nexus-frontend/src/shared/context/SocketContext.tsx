@@ -22,11 +22,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const username = operator?.username ?? '';
 
   useEffect(() => {
-    // No operator → ensure there is no live connection.
-    if (!username) {
-      setSocket(null);
-      return;
-    }
+    // No operator → no live connection. Any existing one was already torn down
+    // (and its state cleared) by the previous run's cleanup below.
+    if (!username) return;
 
     const connection = io(SOCKET_URL, {
       withCredentials: true,
@@ -35,13 +33,20 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       transports: ['websocket', 'polling'],
     });
 
+    // Storing the live connection in state is the whole point of this provider:
+    // consumers must re-render (null → socket) to register their listeners. This
+    // is the legitimate "sync React with an external system" case the rule warns
+    // about, so the synchronous setState here is intentional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSocket(connection);
 
     // One place to tear down: disconnect removes every server-side listener and
-    // room membership for this socket, preventing leaks across logins.
+    // room membership for this socket, preventing leaks across logins, and
+    // clears the React state so consumers see "no connection".
     return () => {
       connection.removeAllListeners();
       connection.disconnect();
+      setSocket(null);
     };
     // Reconnect only when the identity changes (login, logout, role switch).
   }, [role, username]);

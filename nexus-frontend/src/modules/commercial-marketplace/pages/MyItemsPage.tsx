@@ -30,8 +30,9 @@ const MyItemsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback((silent = false) => {
-    if (!silent) setLoading(true);
+  // State is set only in the promise callbacks (never synchronously), so the
+  // mount effect doesn't cause a cascading render. `loading` starts true.
+  const load = useCallback(() => {
     getMyListings()
       .then(data => setItems(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load your items.'))
@@ -44,7 +45,7 @@ const MyItemsPage: React.FC = () => {
   // or a trade completes) refresh this inventory list live.
   useSocketEvent(
     [SOCKET_EVENTS.ListingUpdated, SOCKET_EVENTS.OfferUpdated],
-    () => load(true),
+    () => load(),
   );
 
   const handleDelete = async (id: number) => {

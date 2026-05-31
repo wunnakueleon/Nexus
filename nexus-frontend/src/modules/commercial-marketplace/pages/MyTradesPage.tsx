@@ -88,9 +88,10 @@ const MyTradesPage: React.FC = () => {
   const active = accepted.filter(isActiveTrade);
   const history = accepted.filter(o => !isActiveTrade(o));
 
-  // Load all lists at once so every tab count is correct immediately
-  const load = useCallback((silent = false) => {
-    if (!silent) setLoading(true);
+  // Load all lists at once so every tab count is correct immediately. State is
+  // only set inside the promise callbacks (never synchronously), so the mount
+  // effect doesn't trigger a cascading render; `loading` starts true.
+  const load = useCallback(() => {
     Promise.all([getIncomingOffers(), getOutgoingOffers(), getCompletedOffers()])
       .then(([inc, out, done]) => {
         setIncoming(Array.isArray(inc) ? inc : []);
@@ -104,8 +105,8 @@ const MyTradesPage: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   // A new incoming offer, or the counterparty resolving one, refreshes all
-  // three tabs (incoming/outgoing/completed) and their counts in real time.
-  useSocketEvent(SOCKET_EVENTS.OfferUpdated, () => load(true));
+  // tabs (incoming/outgoing/active/history) and their counts in real time.
+  useSocketEvent(SOCKET_EVENTS.OfferUpdated, () => load());
 
   const handleAccept = async (id: number) => {
     try {

@@ -37,10 +37,10 @@ const PostItemPage: React.FC = () => {
     defaultValues: { category: 'tools', condition: 'used' },
   });
 
-  // Edit mode: load the existing listing and prefill the form
+  // Edit mode: load the existing listing and prefill the form. `loading` already
+  // starts true in edit mode, so the effect needn't set it synchronously.
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
     getListingById(Number(id))
       .then(l => {
         reset({ title: l.title, description: l.description, category: l.category, condition: l.condition });

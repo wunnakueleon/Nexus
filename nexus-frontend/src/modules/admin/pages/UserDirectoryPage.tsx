@@ -60,27 +60,26 @@ const UserDirectoryPage: React.FC = () => {
     [worlds],
   );
 
-  const loadData = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    setError(null);
-    try {
-      const [userList, worldList] = await Promise.all([fetchUsers(), fetchWorlds()]);
-      setUsers(userList);
-      setWorlds(worldList);
-    } catch {
-      setError('Unable to load users.');
-    } finally {
-      setLoading(false);
-    }
+  // State is set only in the promise callbacks (never synchronously), so the
+  // mount effect doesn't cause a cascading render. `loading` starts true.
+  const loadData = useCallback(() => {
+    Promise.all([fetchUsers(), fetchWorlds()])
+      .then(([userList, worldList]) => {
+        setUsers(userList);
+        setWorlds(worldList);
+        setError(null);
+      })
+      .catch(() => setError('Unable to load users.'))
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   // A revoke/reinstate by another admin, or a newly approved operator, updates
   // the directory in place. World edits change the world pills shown per row.
   useSocketEvent(
     [SOCKET_EVENTS.UserUpdated, SOCKET_EVENTS.ApprovalUpdated, SOCKET_EVENTS.WorldUpdated],
-    () => void loadData(true),
+    () => loadData(),
   );
 
   const filtered = useMemo(() => users.filter(u =>
