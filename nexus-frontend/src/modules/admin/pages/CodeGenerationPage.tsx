@@ -161,7 +161,7 @@ const CodeGenerationPage: React.FC = () => {
             <Select options={worldOpts} value={world} onChange={e => setWorld(e.target.value)} />
           </Field>
           <Field label="Role">
-            <Select options={ROLE_OPTS} value={role} onChange={e => setRole(e.target.value as typeof role)} />
+            <Select options={[...ROLE_OPTS]} value={role} onChange={e => setRole(e.target.value as typeof role)} />
           </Field>
           <Field label="Quantity">
             <div className="text-[11px]/[1.45] text-fg-muted font-mono mb-1">

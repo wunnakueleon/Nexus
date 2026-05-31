@@ -50,7 +50,7 @@ const BASE = '/cargo-logistics';
 const ShipmentBoardPage: React.FC = () => {
   const { operator } = useApp();
   const navigate = useNavigate();
-  const mine = operator.worldId ?? '';
+  const mine = operator?.worldId ?? '';
   const [filter, setFilter] = useState('All');
   const [shipments, setShipments] = useState<BoardRow[]>([]);
 

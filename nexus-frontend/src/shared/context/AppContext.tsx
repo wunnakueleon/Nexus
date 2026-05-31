@@ -133,11 +133,25 @@ const MKT_OFFERS: MarketplaceOffer[] = [
   { id:'OFF-3', dir:'completed', gave:{title:'Old Ration Crate', icon:'food'},         got:{title:'Hand-carved Bone Chess Set', icon:'art'}, partner:'M. Calder', world:'GLV', status:'Completed', date:'2391.112' },
 ];
 
+// ---- Session persistence ---------------------------------------------------
+// The signed-in operator is mirrored to localStorage so a page refresh keeps
+// the session (the JWT is persisted alongside it in api.ts).
+const OPERATOR_KEY = 'nexus.auth.operator';
+
+const loadOperator = (): OperatorState | null => {
+  try {
+    const raw = localStorage.getItem(OPERATOR_KEY);
+    return raw ? (JSON.parse(raw) as OperatorState) : null;
+  } catch {
+    return null;
+  }
+};
+
 // ---- Context ---------------------------------------------------------------
 export const AppContext = createContext<AppContextValue | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [operator, setOperatorState] = useState<OperatorState | null>(null);
+  const [operator, setOperatorState] = useState<OperatorState | null>(loadOperator);
   const [worlds]                      = useState<World[]>(WORLDS);
   const [stocks, setStocks]           = useState(STOCKS);
   const [trades, setTrades]           = useState<Trade[]>(TRADES);
@@ -162,13 +176,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [worlds],
   );
 
-  const setOperator = useCallback((op: OperatorState | null) => setOperatorState(op), []);
+  // Expose the raw state setter so callers can pass either a value or an updater
+  // function (e.g. ProtectedRoute patching only the status field).
+  const setOperator = setOperatorState;
 
-  // When the operator signs out (operator cleared), drop the API token so no
-  // stale credential lingers. The token itself is set on the api module at
-  // sign-in / sign-up, where the server hands it to us.
+  // Fully end the session: clear the operator, the persisted copy, and the JWT.
+  const logout = useCallback(() => {
+    setAuthToken(null);
+    setOperatorState(null);
+  }, []);
+
+  // Mirror the operator to localStorage so a refresh restores the session. When
+  // it clears (sign-out), wipe the stored copy and the API token too, so no
+  // stale credential lingers.
   useEffect(() => {
-    if (!operator) setAuthToken(null);
+    if (operator) {
+      localStorage.setItem(OPERATOR_KEY, JSON.stringify(operator));
+    } else {
+      localStorage.removeItem(OPERATOR_KEY);
+      setAuthToken(null);
+    }
   }, [operator]);
 
   // ---- Admin actions -------------------------------------------------------
@@ -325,7 +352,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // ---- Context value -------------------------------------------------------
   const value: AppContextValue = {
-    operator, setOperator, worlds, worldById,
+    operator, setOperator, logout, worlds, worldById,
     RESOURCES, RESOURCE_UNITS, unitOf, STEPS,
     stocks, saveStocks,
     trades, sendTrade, respondTrade, cancelTrade, fulfillTrade,

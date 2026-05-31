@@ -22,7 +22,7 @@ const BASE = '/cargo-logistics';
 const CreateShipmentPage: React.FC = () => {
   const { operator, worlds, RESOURCES, flash } = useApp();
   const navigate = useNavigate();
-  const mine = operator.worldId ?? '';
+  const mine = operator?.worldId ?? '';
   const others = worlds.filter(w => w.id !== mine);
 
   const [dest, setDest] = useState(others[0]?.id ?? '');

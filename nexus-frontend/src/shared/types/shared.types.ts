@@ -193,7 +193,8 @@ export type ScreenMap = Record<string, ScreenConfig>;
 export interface AppContextValue {
   // Auth
   operator: OperatorState | null;
-  setOperator: (op: OperatorState | null) => void;
+  setOperator: (op: OperatorState | null | ((prev: OperatorState | null) => OperatorState | null)) => void;
+  logout: () => void;
 
   // Worlds
   worlds: World[];

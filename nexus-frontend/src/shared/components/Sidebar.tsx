@@ -21,12 +21,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   feature, featureIcon, basePath, items, worldId,
   isOpen = false, onClose,
 }) => {
-  const { operator, setOperator } = useApp();
+  const { operator, logout } = useApp();
   const navigate = useNavigate();
   if (!operator) return null;
 
-  const handleSignOut = () => {
-    setOperator(null);
+  const handleLogout = () => {
+    logout();
     navigate('/', { replace: true });
   };
 
@@ -96,8 +96,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="px-5 py-4 border-t border-line">
         <div className="text-[12px]/[1.45] font-semibold text-fg">{operator.name}</div>
         <div className="text-[11px]/[1.45] text-fg-muted font-mono mb-3">{operator.role}</div>
-        <Button size="sm" variant="outline" className="w-full" icon="power" onClick={handleSignOut}>
-          Switch Operator
+        <Button size="sm" variant="outline" className="w-full" icon="power" onClick={handleLogout}>
+          Log Out
         </Button>
       </div>
     </aside>

@@ -7,9 +7,14 @@ const api = axios.create({
 
 // The signed-in operator's JWT. Set on sign-in/sign-up, cleared on sign-out or
 // when the server rejects it (401). Attached as a Bearer header on every request.
-let authToken: string | null = null;
+// Persisted to localStorage so the session survives a page refresh — seeded from
+// there on module load.
+const TOKEN_KEY = "nexus.auth.token";
+let authToken: string | null = localStorage.getItem(TOKEN_KEY);
 export const setAuthToken = (token: string | null) => {
   authToken = token;
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
 };
 
 api.interceptors.request.use(config => {

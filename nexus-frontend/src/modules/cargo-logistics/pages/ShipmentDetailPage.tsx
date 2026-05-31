@@ -9,7 +9,6 @@ import EmptyState from '../../../shared/components/EmptyState';
 import { Field, Textarea } from '../../../shared/components/Field';
 import Icon from '../../../shared/components/Icon';
 import Modal from '../../../shared/components/Modal';
-import PageHeader from '../../../shared/components/PageHeader';
 import SectionLabel from '../../../shared/components/SectionLabel';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import { Table, Td } from '../../../shared/components/Table';
@@ -74,7 +73,7 @@ const ShipmentDetailPage: React.FC = () => {
   const { operator, flash } = useApp();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const mine = operator.worldId ?? '';
+  const mine = operator?.worldId ?? '';
   const [shipment, setShipment] = useState<DetailView | null>(null);
   const [flagOpen, setFlagOpen] = useState(false);
   const [flagText, setFlagText] = useState('');
