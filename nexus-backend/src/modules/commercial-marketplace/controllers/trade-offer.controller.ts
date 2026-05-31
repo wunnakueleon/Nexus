@@ -2,14 +2,18 @@ import type { Request, Response, NextFunction } from "express";
 import * as TradeOfferModel from "../models/trade-offer.model";
 import * as ListingModel from "../models/listing.model";
 import { createTradeOfferSchema } from "../schemas/trade-offer.schema";
+import { createShipmentFromCommercialTrade } from "../../cargo-logistics/models/shipment.model";
 import { emitTo } from "../../../realtime/io";
 import { Events, roleRoom } from "../../../realtime/events";
 
-// Every offer transition also flips listing statuses, so we signal both the
-// "My Trades" views (offer:updated) and the public board (listing:updated).
+// Every offer transition also flips listing statuses, so we signal the "My
+// Trades" views (offer:updated) and the public board (listing:updated). The
+// listing signal is mirrored to admins because the platform-overview
+// "Marketplace Listings" count keys off the same listing statuses.
 const emitOfferUpdated = () => {
   emitTo(roleRoom("commercial_citizen"), Events.OfferUpdated);
   emitTo(roleRoom("commercial_citizen"), Events.ListingUpdated);
+  emitTo(roleRoom("admin"), Events.ListingUpdated);
 };
 
 interface AuthedRequest extends Request {
@@ -136,7 +140,17 @@ export const accept = async (req: Request, res: Response, next: NextFunction) =>
       ListingModel.update(offer.offeredListingId, { status: "traded" }),
     ]);
 
-    // TODO: auto-create shipment once src/utils/create_shipment.ts is implemented
+    // A successful barter auto-generates the delivery shipment in Cargo Logistics.
+    try {
+      const shipment = await createShipmentFromCommercialTrade(offer);
+      if (shipment) {
+        emitTo(roleRoom("transit_officer"), Events.ShipmentUpdated);
+        emitTo(roleRoom("admin"), Events.ShipmentUpdated);
+      }
+    } catch (shipErr) {
+      // Don't fail the accepted trade if shipment creation hiccups.
+      console.error("Failed to auto-create shipment for offer", offer.id, shipErr);
+    }
 
     emitOfferUpdated();
     res.json(offer);

@@ -1,5 +1,5 @@
 import { prisma } from "../../../db";
-import { ShipmentFlagType, ShipmentStatus } from "../../../generated/prisma/enums";
+import { ShipmentFlagType, ShipmentSourceType, ShipmentStatus } from "../../../generated/prisma/enums";
 import type {
     CreateShipmentFlagInput,
     CreateShipmentInput,
@@ -95,6 +95,61 @@ export async function createShipment(
         },
         include: DETAIL_INCLUDE,
     }) as Promise<ShipmentDetail>;
+}
+
+// Auto-generate a shipment when a resource trade is accepted. The accepting
+// world (toWorld) ships the requested resource to the requesting world.
+export async function createShipmentFromResourceTrade(trade: {
+    id: number;
+    fromWorldId: number;
+    toWorldId: number;
+    resourceWanted: string;
+    quantityWanted: number;
+    respondedByUserId: number | null;
+}): Promise<ShipmentDetail> {
+    return createShipment(
+        {
+            originWorldId: trade.toWorldId,
+            destinationWorldId: trade.fromWorldId,
+            sourceType: ShipmentSourceType.resource_trade,
+            tradeRequestId: trade.id,
+            items: [{ resourceType: trade.resourceWanted, quantity: trade.quantityWanted }],
+        },
+        trade.respondedByUserId ?? 1,
+    );
+}
+
+// Auto-generate a shipment when a marketplace offer is accepted. The seller's
+// world ships the acquired item to the buyer's world.
+export async function createShipmentFromCommercialTrade(offer: {
+    id: number;
+    sellerUserId: number;
+    seller: { world: { id: number } | null };
+    buyer: { world: { id: number } | null };
+    listing: { title: string; condition: string };
+    offeredListing: { title: string };
+}): Promise<ShipmentDetail | null> {
+    const originWorldId = offer.seller.world?.id;
+    const destinationWorldId = offer.buyer.world?.id;
+    // Both parties must belong to a world to route a shipment.
+    if (!originWorldId || !destinationWorldId) return null;
+
+    return createShipment(
+        {
+            originWorldId,
+            destinationWorldId,
+            sourceType: ShipmentSourceType.commercial_trade,
+            tradeOfferId: offer.id,
+            items: [
+                {
+                    resourceType: offer.listing.title,
+                    quantity: 1,
+                    conditionNotes: `${offer.listing.condition} · bartered for "${offer.offeredListing.title}"`,
+                },
+            ],
+        },
+        offer.sellerUserId,
+    );
 }
 
 export async function advanceShipmentStatus(

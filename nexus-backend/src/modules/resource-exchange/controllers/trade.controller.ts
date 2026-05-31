@@ -4,6 +4,7 @@ import { createTradeSchema, respondTradeSchema } from '../schemas/trade.schema';
 import { prisma } from '../../../db';
 import { emitTo } from '../../../realtime/io';
 import { Events, roleRoom } from '../../../realtime/events';
+import { createShipmentFromResourceTrade } from '../../cargo-logistics/models/shipment.model';
 
 // Trade views are filtered client-side by world, so a single role-wide signal
 // covers every resource manager's incoming/outgoing/active/history tabs. Admins
@@ -110,6 +111,24 @@ export const tradeController = {
 
       const data = await tradeModel.accept(id, { ...parsed.data, respondedByUserId });
       emitTradeUpdated();
+
+      // A successful trade auto-generates the delivery shipment in Cargo Logistics.
+      try {
+        await createShipmentFromResourceTrade({
+          id: data.id,
+          fromWorldId: data.fromWorldId,
+          toWorldId: data.toWorldId,
+          resourceWanted: data.resourceWanted,
+          quantityWanted: data.quantityWanted,
+          respondedByUserId,
+        });
+        emitTo(roleRoom('transit_officer'), Events.ShipmentUpdated);
+        emitTo(roleRoom('admin'), Events.ShipmentUpdated);
+      } catch (shipErr) {
+        // Don't fail the accepted trade if shipment creation hiccups.
+        console.error('Failed to auto-create shipment for trade', data.id, shipErr);
+      }
+
       res.json({ success: true, data });
     } catch (err) {
       next(err);
