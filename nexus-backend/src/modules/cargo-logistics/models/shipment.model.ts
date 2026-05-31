@@ -352,6 +352,8 @@ export async function getRouteOverview(): Promise<RouteOverviewResponse> {
             originWorldId: true,
             destinationWorldId: true,
             status: true,
+            // Number of flags on each shipment — used to count flagged corridors.
+            _count: { select: { flags: true } },
         },
     });
 
@@ -362,6 +364,7 @@ export async function getRouteOverview(): Promise<RouteOverviewResponse> {
             destinationWorldId: number;
             totalShipments: number;
             activeShipments: number;
+            flaggedShipments: number;
             statusBreakdown: Partial<Record<ShipmentStatus, number>>;
         }
     >();
@@ -374,6 +377,7 @@ export async function getRouteOverview(): Promise<RouteOverviewResponse> {
                 destinationWorldId: s.destinationWorldId,
                 totalShipments: 0,
                 activeShipments: 0,
+                flaggedShipments: 0,
                 statusBreakdown: {},
             });
         }
@@ -381,6 +385,8 @@ export async function getRouteOverview(): Promise<RouteOverviewResponse> {
         entry.totalShipments += 1;
         if (ACTIVE_STATUSES.has(s.status)) {
             entry.activeShipments += 1;
+            // Only flag live corridors — a flag on a delivered shipment is history.
+            if (s._count.flags > 0) entry.flaggedShipments += 1;
         }
         entry.statusBreakdown[s.status] = (entry.statusBreakdown[s.status] ?? 0) + 1;
     }

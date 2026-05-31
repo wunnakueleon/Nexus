@@ -17,10 +17,13 @@ const POS: Record<string, [number, number]> = {
   MNU: [52, 213],
 };
 
-interface TrafficInfo { n: number; delayed: boolean; }
+interface TrafficInfo { n: number; delayed: boolean; flagged: number; }
+
+const FLAG_COLOR = '#E8960C';
 
 const pairKey = (a: string, b: string) => [a, b].sort().join('-');
 
+// Line colour reflects delay status only; flagged shipments get their own marker.
 const lineColor = (t: TrafficInfo) =>
   t.delayed ? '#D93025' : t.n >= 2 ? '#E8960C' : '#5F8A3E';
 
@@ -46,10 +49,11 @@ const RouteOverviewPage: React.FC = () => {
       const a = WORLD_BY_ID[r.originWorldId] ?? String(r.originWorldId);
       const b = WORLD_BY_ID[r.destinationWorldId] ?? String(r.destinationWorldId);
       const key = pairKey(a, b);
-      const prev = m[key] ?? { n: 0, delayed: false };
+      const prev = m[key] ?? { n: 0, delayed: false, flagged: 0 };
       m[key] = {
         n: prev.n + r.activeShipments,
         delayed: prev.delayed || (r.statusBreakdown.delayed ?? 0) > 0,
+        flagged: prev.flagged + r.flaggedShipments,
       };
     }
     return m;
@@ -64,7 +68,7 @@ const RouteOverviewPage: React.FC = () => {
   }
 
   const traffic = (a: string, b: string): TrafficInfo =>
-    trafficByPair[pairKey(a, b)] ?? { n: 0, delayed: false };
+    trafficByPair[pairKey(a, b)] ?? { n: 0, delayed: false, flagged: 0 };
 
   return (
     <div>
@@ -104,6 +108,15 @@ const RouteOverviewPage: React.FC = () => {
                       <text x={lx} y={ly + 4} textAnchor="middle" fontSize="13" fontFamily="JetBrains Mono" fill={lineColor(t)}>{t.n}</text>
                     </>
                   )}
+                  {/* Flagged shipments on this corridor — a distinct flag marker so
+                      they read separately from the delayed (red) line colour. */}
+                  {t.flagged > 0 && (
+                    <g transform={`translate(${lx + 14}, ${ly - 9})`}>
+                      <line x1="0" y1="0" x2="0" y2="17" stroke={FLAG_COLOR} strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M0.75 0.5 L8.5 3.25 L0.75 6 Z" fill={FLAG_COLOR} />
+                      <text x="11" y="13" fontSize="11" fontWeight="700" fontFamily="JetBrains Mono" fill={FLAG_COLOR}>{t.flagged}</text>
+                    </g>
+                  )}
                 </g>
               );
             })}
@@ -128,6 +141,13 @@ const RouteOverviewPage: React.FC = () => {
               <span className="nx-uppercase">{l}</span>
             </div>
           ))}
+          <div className="flex items-center gap-2 text-[12px]/[1.45] text-fg-secondary">
+            <svg width="13" height="15" viewBox="0 0 13 16" aria-hidden="true">
+              <line x1="2" y1="1" x2="2" y2="15" stroke={FLAG_COLOR} strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M2.75 1.5 L10.5 4.25 L2.75 7 Z" fill={FLAG_COLOR} />
+            </svg>
+            <span className="nx-uppercase">Flagged</span>
+          </div>
           <div className="text-[11px]/[1.45] font-mono text-fg-muted">line weight ∝ active shipments</div>
         </div>
       </Card>

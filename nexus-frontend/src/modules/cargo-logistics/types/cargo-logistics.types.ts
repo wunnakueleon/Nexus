@@ -69,6 +69,8 @@ export interface RouteOverviewItem {
     destinationWorldId: number;
     totalShipments: number;
     activeShipments: number;
+    // Active shipments on this corridor carrying at least one flag.
+    flaggedShipments: number;
     statusBreakdown: Partial<Record<ShipmentStatus, number>>;
 }
 

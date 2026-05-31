@@ -66,6 +66,10 @@ export interface RouteOverviewItem {
   destinationWorldId: number;
   totalShipments: number;
   activeShipments: number;
+  // Active shipments on this corridor carrying at least one flag (any flag type,
+  // not only delay). Surfaced separately so the map can mark "flagged" distinctly
+  // from the delayed-status "disrupted" colouring.
+  flaggedShipments: number;
   statusBreakdown: Partial<Record<ShipmentStatus, number>>;
 }
 

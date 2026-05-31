@@ -7,7 +7,7 @@ import Button from '../../../shared/components/Button';
 import Card from '../../../shared/components/Card';
 import EmptyState from '../../../shared/components/EmptyState';
 import LoadingState from '../../../shared/components/LoadingState';
-import { Field, Textarea } from '../../../shared/components/Field';
+import { Field, Select, Textarea } from '../../../shared/components/Field';
 import Icon from '../../../shared/components/Icon';
 import Modal from '../../../shared/components/Modal';
 import SectionLabel from '../../../shared/components/SectionLabel';
@@ -21,7 +21,16 @@ import {
   deliverShipment as apiDeliver,
   getShipment,
 } from '../apis/shipment.api';
-import type { ShipmentDetail } from '../types/cargo-logistics.types';
+import type { ShipmentDetail, ShipmentFlagType } from '../types/cargo-logistics.types';
+
+// Flag types an officer can record. "delay" additionally flips the shipment to
+// the delayed status, which turns its corridor red on the route map.
+const FLAG_TYPE_OPTIONS: { value: ShipmentFlagType; label: string }[] = [
+  { value: 'delay',         label: 'Delay (marks route disrupted)' },
+  { value: 'damage',        label: 'Damage' },
+  { value: 'missing_items', label: 'Missing Items' },
+  { value: 'other',         label: 'Other' },
+];
 
 // Matches seed creation order — update if DB is re-seeded with different IDs
 const WORLD_BY_ID: Record<number, string> = { 1: 'GLV', 2: 'NPT', 3: 'MNU', 4: 'WNM' };
@@ -85,6 +94,7 @@ const ShipmentDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(isApiId);
   const [flagOpen, setFlagOpen] = useState(false);
   const [flagText, setFlagText] = useState('');
+  const [flagType, setFlagType] = useState<ShipmentFlagType>('delay');
 
   const load = useCallback(() => {
     if (!isApiId) return;
@@ -120,10 +130,11 @@ const ShipmentDetailPage: React.FC = () => {
   const handleFlag = async () => {
     if (!flagText.trim()) return;
     try {
-      await apiAddFlag(numericId, { flagType: 'other', description: flagText.trim() });
+      await apiAddFlag(numericId, { flagType, description: flagText.trim() });
       setShipment(adaptDetail(await getShipment(numericId)));
       setFlagOpen(false);
       setFlagText('');
+      setFlagType('delay');
     } catch {
       flash('Failed to record flag.');
     }
@@ -246,6 +257,13 @@ const ShipmentDetailPage: React.FC = () => {
             </>
           }
         >
+          <Field label="Issue Type">
+            <Select
+              options={FLAG_TYPE_OPTIONS}
+              value={flagType}
+              onChange={e => setFlagType(e.target.value as ShipmentFlagType)}
+            />
+          </Field>
           <Field label="Issue Description">
             <Textarea rows={3} value={flagText} onChange={e => setFlagText(e.target.value)} placeholder="Describe the disruption or condition..." />
           </Field>
