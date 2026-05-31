@@ -41,7 +41,7 @@ const ProtectedRoute = ({ role }: { role: string }) => {
     } catch {
       // Ignore status check failures to avoid blocking navigation.
     }
-  }, [operator?.username, operator?.status, navigate, setOperator]);
+  }, [operator, navigate, setOperator]);
 
   // Real-time: the moment an admin revokes/reinstates this account, the server
   // pushes auth:status to our personal room and we react instantly. The 20s
