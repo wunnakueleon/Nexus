@@ -21,6 +21,16 @@ const STATUS_LABEL: Record<string, string> = {
   pending: 'Pending', accepted: 'Accepted', declined: 'Declined', withdrawn: 'Withdrawn',
 };
 
+const SHIPMENT_LABEL: Record<string, string> = {
+  preparing: 'Preparing', departed: 'Departed', in_transit: 'In Transit',
+  delivered: 'Delivered', delayed: 'Delayed', cancelled: 'Cancelled',
+};
+
+// An accepted trade stays "Active" while its delivery shipment is still moving.
+// Once delivered (or cancelled), it settles into History.
+const isActiveTrade = (o: TradeOfferResponse) =>
+  !!o.shipment && o.shipment.status !== 'delivered' && o.shipment.status !== 'cancelled';
+
 const WorldTag: React.FC<{ name: string; color: string }> = ({ name, color }) => (
   <span className="inline-flex items-center gap-1.5 rounded text-[10px]/[1.45] font-semibold px-1.5 py-0.5"
     style={{ color, background: color + '22' }}>
@@ -70,17 +80,22 @@ const MyTradesPage: React.FC = () => {
 
   const [incoming, setIncoming] = useState<TradeOfferResponse[]>([]);
   const [outgoing, setOutgoing] = useState<TradeOfferResponse[]>([]);
-  const [completed, setCompleted] = useState<TradeOfferResponse[]>([]);
+  const [accepted, setAccepted] = useState<TradeOfferResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load all three lists at once so every tab count is correct immediately
+  // Accepted trades are split by their delivery shipment's status into the
+  // Active (in transit) and History (delivered/settled) tabs.
+  const active = accepted.filter(isActiveTrade);
+  const history = accepted.filter(o => !isActiveTrade(o));
+
+  // Load all lists at once so every tab count is correct immediately
   const load = useCallback((silent = false) => {
     if (!silent) setLoading(true);
     Promise.all([getIncomingOffers(), getOutgoingOffers(), getCompletedOffers()])
       .then(([inc, out, done]) => {
         setIncoming(Array.isArray(inc) ? inc : []);
         setOutgoing(Array.isArray(out) ? out : []);
-        setCompleted(Array.isArray(done) ? done : []);
+        setAccepted(Array.isArray(done) ? done : []);
       })
       .catch(() => flash('Failed to load offers'))
       .finally(() => setLoading(false));
@@ -95,9 +110,10 @@ const MyTradesPage: React.FC = () => {
   const handleAccept = async (id: number) => {
     try {
       const updated = await acceptOffer(id);
-      // remove from incoming, add to completed so both counts update immediately
+      // Remove from incoming, add to the accepted pool. Its freshly created
+      // delivery shipment starts "preparing", so it lands in the Active tab.
       setIncoming(prev => prev.filter(o => o.id !== id));
-      setCompleted(prev => [updated, ...prev]);
+      setAccepted(prev => [updated, ...prev]);
       flash('Offer accepted');
     } catch { flash('Failed to accept offer'); }
   };
@@ -121,9 +137,10 @@ const MyTradesPage: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'incoming',  label: 'Incoming Offers', count: incoming.length },
-    { id: 'outgoing',  label: 'Outgoing Offers', count: outgoing.length },
-    { id: 'completed', label: 'Completed',        count: completed.length },
+    { id: 'incoming', label: 'Incoming Offers', count: incoming.length },
+    { id: 'outgoing', label: 'Outgoing Offers', count: outgoing.length },
+    { id: 'active',   label: 'Active',          count: active.length },
+    { id: 'history',  label: 'History',         count: history.length },
   ];
 
   return (
@@ -174,10 +191,35 @@ const MyTradesPage: React.FC = () => {
               ))
         )}
 
-        {!loading && tab === 'completed' && (
-          completed.length === 0
-            ? <Card><EmptyState icon="market" text="No completed trades." /></Card>
-            : completed.map(o => (
+        {!loading && tab === 'active' && (
+          active.length === 0
+            ? <Card><EmptyState icon="cargo" text="No active trades." sub="Accepted trades in transit will appear here." /></Card>
+            : active.map(o => (
+                <Card key={o.id} className="p-4">
+                  <Pair leftLabel="You gave" left={o.offeredListing} rightLabel="You received" right={o.listing} />
+                  <div className="flex items-center gap-2 mt-4 pt-3 border-t border-line">
+                    <span className="text-[12px]/[1.45] text-fg-muted nx-uppercase">Delivery</span>
+                    {o.shipment && (
+                      <>
+                        <StatusBadge
+                          status={SHIPMENT_LABEL[o.shipment.status] ?? o.shipment.status}
+                          pulse={o.shipment.status === 'delayed'}
+                        />
+                        <span className="text-[12px]/[1.45] font-mono text-fg-muted">{o.shipment.shipmentCode}</span>
+                      </>
+                    )}
+                    <span className="text-[12px]/[1.45] font-mono text-fg-muted ml-auto">
+                      {o.resolvedAt ? new Date(o.resolvedAt).toLocaleDateString() : '—'}
+                    </span>
+                  </div>
+                </Card>
+              ))
+        )}
+
+        {!loading && tab === 'history' && (
+          history.length === 0
+            ? <Card><EmptyState icon="market" text="No completed trades." sub="Delivered trades will settle here." /></Card>
+            : history.map(o => (
                 <Card key={o.id} className="p-4">
                   <Pair leftLabel="You gave" left={o.offeredListing} rightLabel="You received" right={o.listing} />
                   <div className="flex items-center gap-2 mt-4 pt-3 border-t border-line">

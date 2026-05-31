@@ -21,6 +21,9 @@ const offerDetail = {
   offeredListing: { include: { ...listingSummary, user: safeUser } },
   buyer:   safeUser,
   seller:  safeUser,
+  // The seller→buyer delivery leg is linked to the offer (tradeOfferId @unique).
+  // Its status is what moves an accepted trade from Active to History.
+  shipment: { select: { id: true, shipmentCode: true, status: true } },
 };
 
 // ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import {
     fulfillTradeIfFullyDelivered,
     getRouteOverview,
     getShipmentById,
+    getTradeOfferIdForShipment,
     listShipments,
 } from "../models/shipment.model";
 import { emitTo } from "../../../realtime/io";
@@ -24,6 +25,14 @@ import { Events, roleRoom } from "../../../realtime/events";
 const emitShipmentUpdated = () => {
     emitTo(roleRoom("transit_officer"), Events.ShipmentUpdated);
     emitTo(roleRoom("admin"), Events.ShipmentUpdated);
+};
+
+// A commercial barter's delivery leg is linked to its trade offer. When that
+// shipment's status changes, nudge the marketplace's "My Trades" view so the
+// trade reflects live status and moves Active → History on delivery.
+const notifyLinkedTradeOffer = async (shipmentId: number) => {
+    const tradeOfferId = await getTradeOfferIdForShipment(shipmentId);
+    if (tradeOfferId !== null) emitTo(roleRoom("commercial_citizen"), Events.OfferUpdated);
 };
 
 interface AuthRequest extends Request {
@@ -116,6 +125,7 @@ export async function advanceShipmentHandler(
         if (!updated) return void next(appError(400, "Shipment cannot be advanced from its current status"));
 
         emitShipmentUpdated();
+        await notifyLinkedTradeOffer(id);
         res.json(updated);
     } catch (err) {
         next(err);
@@ -141,6 +151,7 @@ export async function deliverShipmentHandler(
         if (!updated) return void next(appError(400, "Shipment cannot be delivered from its current status"));
 
         emitShipmentUpdated();
+        await notifyLinkedTradeOffer(id);
 
         // If this was the final leg of a resource trade, auto-fulfill it and let
         // the trade dashboard move it to History without a manual "Mark Fulfilled".

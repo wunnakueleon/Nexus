@@ -141,6 +141,16 @@ export async function createShipmentFromResourceTrade(trade: {
 // Auto-generate the two shipments of an accepted marketplace barter — the
 // seller ships the listed item to the buyer, and the buyer ships the offered
 // item back. Only the seller→buyer leg carries the unique tradeOfferId FK.
+// The commercial-trade delivery leg carries the linked tradeOfferId. Callers use
+// this to notify the marketplace when the shipment's status changes.
+export async function getTradeOfferIdForShipment(shipmentId: number): Promise<number | null> {
+    const ship = await prisma.shipment.findUnique({
+        where: { id: shipmentId },
+        select: { tradeOfferId: true },
+    });
+    return ship?.tradeOfferId ?? null;
+}
+
 export async function createShipmentFromCommercialTrade(offer: {
     id: number;
     sellerUserId: number;

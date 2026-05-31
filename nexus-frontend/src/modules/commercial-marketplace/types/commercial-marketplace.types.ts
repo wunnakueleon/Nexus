@@ -2,6 +2,7 @@ export type ListingCategory = 'tools' | 'food' | 'crafts' | 'tech' | 'clothing' 
 export type ListingCondition = 'new_item' | 'used' | 'handmade' | 'rare';
 export type ListingStatus    = 'available' | 'in_pending_trade' | 'traded' | 'deleted';
 export type TradeOfferStatus = 'pending' | 'accepted' | 'declined' | 'withdrawn';
+export type ShipmentStatus   = 'preparing' | 'departed' | 'in_transit' | 'delivered' | 'delayed' | 'cancelled';
 
 // ---------------------------------------------------------------------------
 // Shared building blocks (match actual API response shapes)
@@ -42,6 +43,12 @@ export interface ListingResponse {
   user: UserRef;
 }
 
+export interface ShipmentRef {
+  id: number;
+  shipmentCode: string;
+  status: ShipmentStatus;
+}
+
 export interface TradeOfferResponse {
   id: number;
   listingId: number;
@@ -53,6 +60,9 @@ export interface TradeOfferResponse {
   offeredListing: ListingResponse;
   buyer: UserRef;
   seller: UserRef;
+  // The linked seller→buyer delivery leg (present once accepted). Its status
+  // drives whether an accepted trade is Active (in transit) or History (delivered).
+  shipment: ShipmentRef | null;
 }
 
 // ---------------------------------------------------------------------------
