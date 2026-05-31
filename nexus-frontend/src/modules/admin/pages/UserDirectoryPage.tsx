@@ -9,6 +9,8 @@ import StatusBadge from '../../../shared/components/StatusBadge';
 import { Table, Td } from '../../../shared/components/Table';
 import { fetchUsers, updateUserStatus } from '../apis/user.api';
 import { fetchWorlds } from '../apis/world.api';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import type { AdminWorldSummary, UserDirectoryRow } from '../types/admin.types';
 
 const ROLE_LABELS: Record<UserDirectoryRow['role'], string> = {
@@ -58,8 +60,8 @@ const UserDirectoryPage: React.FC = () => {
     [worlds],
   );
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const [userList, worldList] = await Promise.all([fetchUsers(), fetchWorlds()]);
@@ -73,6 +75,13 @@ const UserDirectoryPage: React.FC = () => {
   }, []);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  // A revoke/reinstate by another admin, or a newly approved operator, updates
+  // the directory in place. World edits change the world pills shown per row.
+  useSocketEvent(
+    [SOCKET_EVENTS.UserUpdated, SOCKET_EVENTS.ApprovalUpdated, SOCKET_EVENTS.WorldUpdated],
+    () => void loadData(true),
+  );
 
   const filtered = useMemo(() => users.filter(u =>
     (q === '' || u.name.toLowerCase().includes(q.toLowerCase()) || u.username.toLowerCase().includes(q.toLowerCase())) &&

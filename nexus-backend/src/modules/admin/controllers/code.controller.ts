@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { accessCodeIdSchema, generateCodeSchema } from "../schemas/code.schema";
 import { expireAccessCode, generateAccessCodes, listAccessCodes } from "../models/code.model";
+import { emitTo } from "../../../realtime/io";
+import { Events, roleRoom } from "../../../realtime/events";
 
 export const getAccessCodes = async (
 	_req: Request,
@@ -24,6 +26,7 @@ export const generateCodes = async (
 		const { worldId, role, qty } = generateCodeSchema.parse(req.body);
 		const enforcedQty = role === "commercial_citizen" ? qty : 1;
 		const created = await generateAccessCodes(worldId, role, enforcedQty);
+		emitTo(roleRoom("admin"), Events.CodeUpdated);
 		res.status(201).json(created);
 	} catch (err) {
 		next(err);
@@ -43,6 +46,7 @@ export const expireCode = async (
 			error.status = 404;
 			throw error;
 		}
+		emitTo(roleRoom("admin"), Events.CodeUpdated);
 		res.json(updated);
 	} catch (err) {
 		next(err);

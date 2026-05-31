@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../../../shared/hooks/useApp';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import Button from '../../../shared/components/Button';
 import Card from '../../../shared/components/Card';
 import EmptyState from '../../../shared/components/EmptyState';
@@ -80,14 +82,19 @@ const ShipmentDetailPage: React.FC = () => {
   const numericId = Number(id);
   const isApiId = Number.isInteger(numericId) && numericId > 0;
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!isApiId) return;
-    let cancelled = false;
     getShipment(numericId)
-      .then(data => { if (!cancelled) setShipment(adaptDetail(data)); })
-      .catch(() => { if (!cancelled) setShipment(null); });
-    return () => { cancelled = true; };
+      .then(data => setShipment(adaptDetail(data)))
+      .catch(() => setShipment(null));
   }, [isApiId, numericId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // If another officer advances/flags this shipment while it's open, the route,
+  // timeline and flags refresh in place. (Filtering by this id isn't needed —
+  // re-pulling the open shipment is cheap and always correct.)
+  useSocketEvent(SOCKET_EVENTS.ShipmentUpdated, load);
 
   const handleAdvance = async () => {
     try {

@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import Icon from '../../../shared/components/Icon';
 import Card from '../../../shared/components/Card';
 import EmptyState from '../../../shared/components/EmptyState';
@@ -34,15 +36,21 @@ const BrowseMarketplacePage: React.FC = () => {
   const [status, setStatus] = useState<'All' | 'available' | 'in_pending_trade'>('All');
   const [cond, setCond] = useState<ListingCondition | 'All'>('All');
 
-  // Fetch the full board once; all filtering is client-side below.
-  useEffect(() => {
-    setLoading(true);
+  // Fetch the full board; all filtering is client-side below.
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     getListings()
       .then(data => setListings(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load listings.'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Any citizen posting, editing, removing, or trading an item changes the
+  // shared board — refresh quietly so listings appear/disappear live.
+  useSocketEvent(SOCKET_EVENTS.ListingUpdated, () => load(true));
 
   // World options derived from real listing data (numeric backend IDs)
   const worldOptions = useMemo(() => {

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useApp } from '../../../shared/hooks/useApp';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import { resourceApi } from '../apis/resource.api';
 import type { ResourceRow, StockUpdate } from '../types/resource-exchange.types';
 import Button from '../../../shared/components/Button';
@@ -32,6 +34,10 @@ const ResourceOverviewPage: React.FC = () => {
   }, []);
 
   useEffect(() => { fetchResources(); }, [fetchResources]);
+
+  // Another world editing its stock telemetry updates the board live. An open
+  // edit draft is held separately, so an incoming refresh won't disturb it.
+  useSocketEvent(SOCKET_EVENTS.ResourceUpdated, () => { void fetchResources(); });
 
   const nameToDbId = useMemo(() => {
     const map: Record<string, number> = {};

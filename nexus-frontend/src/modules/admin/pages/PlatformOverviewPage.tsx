@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Card from '../../../shared/components/Card';
 import PageHeader from '../../../shared/components/PageHeader';
 import SectionLabel from '../../../shared/components/SectionLabel';
 import { fetchPlatformOverview } from '../apis/overview.api';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import type { PlatformOverview } from '../types/admin.types';
 
 interface MetricProps {
@@ -29,11 +31,29 @@ const PlatformOverviewPage: React.FC = () => {
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     fetchPlatformOverview()
       .then(setOverview)
       .catch(() => setError('Failed to load overview data.'));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // The dashboard aggregates every domain, so it re-pulls its metrics whenever
+  // any of them changes. These events are mirrored to the admin room server-side.
+  useSocketEvent(
+    [
+      SOCKET_EVENTS.ApprovalCreated,
+      SOCKET_EVENTS.ApprovalUpdated,
+      SOCKET_EVENTS.UserUpdated,
+      SOCKET_EVENTS.CodeUpdated,
+      SOCKET_EVENTS.WorldUpdated,
+      SOCKET_EVENTS.TradeUpdated,
+      SOCKET_EVENTS.ShipmentUpdated,
+      SOCKET_EVENTS.ListingUpdated,
+    ],
+    load,
+  );
 
   if (error) {
     return (

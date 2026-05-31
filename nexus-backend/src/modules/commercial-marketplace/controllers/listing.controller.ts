@@ -2,6 +2,16 @@ import type { Request, Response, NextFunction } from "express";
 import * as ListingModel from "../models/listing.model";
 import { createListingSchema, updateListingSchema } from "../schemas/listing.schema";
 import type { ListingCategory } from "../../../generated/prisma/enums";
+import { emitTo } from "../../../realtime/io";
+import { Events, roleRoom } from "../../../realtime/events";
+
+// The public board (Browse) is shared by all citizens, so a listing change is a
+// citizen-wide signal. "My Items" also listens and refilters to the owner.
+// Admins also hear it for the platform-overview active-listings count.
+const emitListingUpdated = () => {
+  emitTo(roleRoom("commercial_citizen"), Events.ListingUpdated);
+  emitTo(roleRoom("admin"), Events.ListingUpdated);
+};
 
 interface AuthedRequest extends Request {
   user: { id: number; role: string; worldId: number };
@@ -64,6 +74,7 @@ export const create = async (req: Request, res: Response, next: NextFunction) =>
       ...parsed.data,
       imageUrls: req.body.imageUrls,
     });
+    emitListingUpdated();
     res.status(201).json(listing);
   } catch (err) {
     next(err);
@@ -99,6 +110,7 @@ export const update = async (req: Request, res: Response, next: NextFunction) =>
       ...parsed.data,
       imageUrls: req.body.imageUrls,
     });
+    emitListingUpdated();
     res.json(updated);
   } catch (err) {
     next(err);
@@ -125,6 +137,7 @@ export const remove = async (req: Request, res: Response, next: NextFunction) =>
     }
 
     await ListingModel.softDelete(listing.id);
+    emitListingUpdated();
     res.status(204).send();
   } catch (err) {
     next(err);

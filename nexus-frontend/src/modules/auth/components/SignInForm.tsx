@@ -38,22 +38,15 @@ const SignInForm = () => {
   const { setOperator } = useApp();
 
   const handleRoute = (response: AuthResponse) => {
-    if (response.status === 'pending') {
-      navigate('/pending-approval');
-      return;
-    }
-    if (response.status === 'rejected') {
-      navigate('/account-rejected');
-      return;
-    }
-    if (response.status === 'revoked') {
-      navigate('/access-revoked');
-      return;
-    }
-
+    // Establish the session for every status (not just active) so the realtime
+    // socket can connect and the pending page can receive an instant approval.
     const roleLabel = ROLE_LABELS[response.role];
     const worldId = response.worldName ? WORLD_NAME_TO_ID[response.worldName] ?? null : null;
     setOperator({ role: roleLabel, worldId, name: response.name, username, status: response.status });
+
+    if (response.status === 'pending') return navigate('/pending-approval');
+    if (response.status === 'rejected') return navigate('/account-rejected');
+    if (response.status === 'revoked') return navigate('/access-revoked');
     navigate(ROLE_PATHS[response.role]);
   };
 

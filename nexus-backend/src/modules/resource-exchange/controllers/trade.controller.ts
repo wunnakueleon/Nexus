@@ -2,6 +2,16 @@ import type { Request, Response, NextFunction } from 'express';
 import { tradeModel } from '../models/trade.model';
 import { createTradeSchema, respondTradeSchema } from '../schemas/trade.schema';
 import { prisma } from '../../../db';
+import { emitTo } from '../../../realtime/io';
+import { Events, roleRoom } from '../../../realtime/events';
+
+// Trade views are filtered client-side by world, so a single role-wide signal
+// covers every resource manager's incoming/outgoing/active/history tabs. Admins
+// also hear it because the platform-overview trade count keys off the same data.
+const emitTradeUpdated = () => {
+  emitTo(roleRoom('resource_manager'), Events.TradeUpdated);
+  emitTo(roleRoom('admin'), Events.TradeUpdated);
+};
 
 type IdParams = { id: string };
 
@@ -60,6 +70,7 @@ export const tradeController = {
       }
 
       const data = await tradeModel.create({ ...parsed.data, requestedByUserId });
+      emitTradeUpdated();
       res.status(201).json({ success: true, data });
     } catch (err) {
       next(err);
@@ -98,6 +109,7 @@ export const tradeController = {
       }
 
       const data = await tradeModel.accept(id, { ...parsed.data, respondedByUserId });
+      emitTradeUpdated();
       res.json({ success: true, data });
     } catch (err) {
       next(err);
@@ -136,6 +148,7 @@ export const tradeController = {
       }
 
       const data = await tradeModel.decline(id, { ...parsed.data, respondedByUserId });
+      emitTradeUpdated();
       res.json({ success: true, data });
     } catch (err) {
       next(err);
@@ -150,6 +163,7 @@ export const tradeController = {
         return;
       }
       const data = await tradeModel.cancel(id);
+      emitTradeUpdated();
       res.json({ success: true, data });
     } catch (err) {
       next(err);
@@ -164,6 +178,7 @@ export const tradeController = {
         return;
       }
       const data = await tradeModel.fulfill(id);
+      emitTradeUpdated();
       res.json({ success: true, data });
     } catch (err) {
       next(err);

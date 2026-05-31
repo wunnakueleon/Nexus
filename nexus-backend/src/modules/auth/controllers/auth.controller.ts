@@ -1,11 +1,15 @@
 import type { Request, Response, NextFunction } from "express";
 import { signInSchema, signUpSchema } from "../schemas/auth.schema";
 import { getAuthStatusByUsername, signInWithCredentials, signUpWithCode } from "../models/auth.model";
+import { emitTo } from "../../../realtime/io";
+import { Events, roleRoom } from "../../../realtime/events";
 
 export const signUp = async (req: Request, res: Response, next: NextFunction) => {
 	try {
 		const payload = signUpSchema.parse(req.body);
 		const result = await signUpWithCode(payload);
+		// A new signup lands in the pending queue — tell every admin to refetch.
+		emitTo(roleRoom("admin"), Events.ApprovalCreated);
 		res.status(201).json(result);
 	} catch (err) {
 		next(err);

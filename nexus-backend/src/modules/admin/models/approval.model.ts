@@ -36,7 +36,7 @@ export const resolveApprovalById = async (
 		},
 	});
 
-	return { id, status: nextStatus };
+	return { id, status: nextStatus, username: user.username };
 };
 
 export const getApprovalHistory = async (): Promise<ApprovalHistoryItem[]> => {

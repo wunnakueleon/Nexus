@@ -10,6 +10,8 @@ import { Table, Td } from "../../../shared/components/Table";
 import WorldBadge from "../../../shared/components/WorldBadge";
 import { fetchApprovalHistory, fetchApprovalQueue, resolveApproval } from "../apis/approval.api";
 import { fetchWorlds } from "../apis/world.api";
+import { useSocketEvent } from "../../../shared/hooks/useSocketEvent";
+import { SOCKET_EVENTS } from "../../../shared/realtime/events";
 import type {
   ApprovalAction,
   ApprovalHistoryItem,
@@ -60,8 +62,8 @@ const ApprovalQueue: React.FC = () => {
   const [fRole, setFRole] = useState('All');
   const [fStatus, setFStatus] = useState('All');
 
-  const loadApprovals = useCallback(async () => {
-    setLoading(true);
+  const loadApprovals = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const [queueData, historyData, worldData] = await Promise.all([
@@ -90,6 +92,13 @@ const ApprovalQueue: React.FC = () => {
   useEffect(() => {
     void loadApprovals();
   }, [loadApprovals]);
+
+  // Live updates: a new signup, or another admin resolving a request, refreshes
+  // both the pending queue and the resolution history without a manual reload.
+  useSocketEvent(
+    [SOCKET_EVENTS.ApprovalCreated, SOCKET_EVENTS.ApprovalUpdated, SOCKET_EVENTS.UserUpdated],
+    () => void loadApprovals(true),
+  );
 
   const handleResolve = async (id: number, action: ApprovalAction) => {
     setBusyId(id);

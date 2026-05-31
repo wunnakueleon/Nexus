@@ -2,6 +2,15 @@ import type { Request, Response, NextFunction } from "express";
 import * as TradeOfferModel from "../models/trade-offer.model";
 import * as ListingModel from "../models/listing.model";
 import { createTradeOfferSchema } from "../schemas/trade-offer.schema";
+import { emitTo } from "../../../realtime/io";
+import { Events, roleRoom } from "../../../realtime/events";
+
+// Every offer transition also flips listing statuses, so we signal both the
+// "My Trades" views (offer:updated) and the public board (listing:updated).
+const emitOfferUpdated = () => {
+  emitTo(roleRoom("commercial_citizen"), Events.OfferUpdated);
+  emitTo(roleRoom("commercial_citizen"), Events.ListingUpdated);
+};
 
 interface AuthedRequest extends Request {
   user: { id: number; role: string; worldId: number };
@@ -94,6 +103,7 @@ export const create = async (req: Request, res: Response, next: NextFunction) =>
       ListingModel.update(offeredListingId, { status: "in_pending_trade" }),
     ]);
 
+    emitOfferUpdated();
     res.status(201).json(offer);
   } catch (err) {
     next(err);
@@ -128,6 +138,7 @@ export const accept = async (req: Request, res: Response, next: NextFunction) =>
 
     // TODO: auto-create shipment once src/utils/create_shipment.ts is implemented
 
+    emitOfferUpdated();
     res.json(offer);
   } catch (err) {
     next(err);
@@ -160,6 +171,7 @@ export const decline = async (req: Request, res: Response, next: NextFunction) =
       ListingModel.update(offer.offeredListingId, { status: "available" }),
     ]);
 
+    emitOfferUpdated();
     res.json(offer);
   } catch (err) {
     next(err);
@@ -196,6 +208,7 @@ export const withdraw = async (req: Request, res: Response, next: NextFunction) 
       ListingModel.update(offer.offeredListingId, { status: "available" }),
     ]);
 
+    emitOfferUpdated();
     res.json(offer);
   } catch (err) {
     next(err);

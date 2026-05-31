@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../shared/hooks/useApp';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import { tradeApi } from '../apis/trade.api';
 import { resourceApi } from '../apis/resource.api';
 import type { TradeRequestRow } from '../types/resource-exchange.types';
@@ -129,6 +131,10 @@ const TradeDashboardPage: React.FC = () => {
   }, [myWorldName]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // When the other world creates a request to us, or responds to / cancels /
+  // fulfils one of ours, every tab's list and count updates without a reload.
+  useSocketEvent(SOCKET_EVENTS.TradeUpdated, () => { void fetchAll(); });
 
   const incoming = useMemo(() => trades.filter(t => t.toWorldId === myDbId && t.status === 'pending'), [trades, myDbId]);
   const outgoing = useMemo(() => trades.filter(t => t.fromWorldId === myDbId), [trades, myDbId]);

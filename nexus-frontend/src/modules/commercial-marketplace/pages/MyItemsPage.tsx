@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../shared/hooks/useApp';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import Button from '../../../shared/components/Button';
 import Card from '../../../shared/components/Card';
 import EmptyState from '../../../shared/components/EmptyState';
@@ -28,15 +30,22 @@ const MyItemsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
-    setLoading(true);
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     getMyListings()
       .then(data => setItems(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load your items.'))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(load, []);
+  useEffect(() => { load(); }, [load]);
+
+  // Item status flips (e.g. an incoming offer puts an item "in pending trade",
+  // or a trade completes) refresh this inventory list live.
+  useSocketEvent(
+    [SOCKET_EVENTS.ListingUpdated, SOCKET_EVENTS.OfferUpdated],
+    () => load(true),
+  );
 
   const handleDelete = async (id: number) => {
     try {

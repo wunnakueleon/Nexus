@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../../../shared/hooks/useApp';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import Button from '../../../shared/components/Button';
 import Card from '../../../shared/components/Card';
 import EmptyState from '../../../shared/components/EmptyState';
@@ -72,8 +74,8 @@ const MyTradesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Load all three lists at once so every tab count is correct immediately
-  useEffect(() => {
-    setLoading(true);
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     Promise.all([getIncomingOffers(), getOutgoingOffers(), getCompletedOffers()])
       .then(([inc, out, done]) => {
         setIncoming(Array.isArray(inc) ? inc : []);
@@ -82,7 +84,13 @@ const MyTradesPage: React.FC = () => {
       })
       .catch(() => flash('Failed to load offers'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [flash]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // A new incoming offer, or the counterparty resolving one, refreshes all
+  // three tabs (incoming/outgoing/completed) and their counts in real time.
+  useSocketEvent(SOCKET_EVENTS.OfferUpdated, () => load(true));
 
   const handleAccept = async (id: number) => {
     try {

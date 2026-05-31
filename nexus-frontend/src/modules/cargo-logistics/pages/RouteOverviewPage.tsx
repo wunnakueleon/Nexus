@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../../shared/hooks/useApp';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import Card from '../../../shared/components/Card';
 import PageHeader from '../../../shared/components/PageHeader';
 import { getRouteOverview } from '../apis/shipment.api';
@@ -26,13 +28,16 @@ const RouteOverviewPage: React.FC = () => {
   const { worlds } = useApp();
   const [routes, setRoutes] = useState<RouteOverviewItem[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(() => {
     getRouteOverview()
-      .then(data => { if (!cancelled) setRoutes(data); })
-      .catch(() => { if (!cancelled) setRoutes([]); });
-    return () => { cancelled = true; };
+      .then(data => setRoutes(data))
+      .catch(() => setRoutes([]));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Corridor traffic weights shift whenever any shipment changes state.
+  useSocketEvent(SOCKET_EVENTS.ShipmentUpdated, load);
 
   // Collapse directional corridors into unordered pairs, summing active traffic
   const trafficByPair = useMemo(() => {

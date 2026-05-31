@@ -12,6 +12,8 @@ import {
 	resolveWorldRequest,
 	updateWorld,
 } from "../models/world.model";
+import { emitTo } from "../../../realtime/io";
+import { Events, roleRoom } from "../../../realtime/events";
 
 export const listWorlds = async (
 	_req: Request,
@@ -40,6 +42,7 @@ export const updateWorldDetails = async (
 			error.status = 404;
 			throw error;
 		}
+		emitTo(roleRoom("admin"), Events.WorldUpdated);
 		res.json(updated);
 	} catch (err) {
 		next(err);
@@ -86,6 +89,7 @@ export const submitWorldRequest = async (
 			colorHex: payload.colorHex ?? null,
 			reason: payload.reason,
 		});
+		emitTo(roleRoom("admin"), Events.WorldUpdated);
 		res.status(201).json(row);
 	} catch (err) {
 		next(err);
@@ -106,6 +110,9 @@ export const resolveWorldRequestById = async (
 			error.status = 404;
 			throw error;
 		}
+		// Resolving can add/remove an active world, so the worlds list, codes and
+		// directory views all key off this — admins refetch on WorldUpdated.
+		emitTo(roleRoom("admin"), Events.WorldUpdated);
 		res.json(updated);
 	} catch (err) {
 		next(err);

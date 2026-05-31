@@ -14,6 +14,16 @@ import {
     getShipmentById,
     listShipments,
 } from "../models/shipment.model";
+import { emitTo } from "../../../realtime/io";
+import { Events, roleRoom } from "../../../realtime/events";
+
+// The board, detail and route-overview pages all filter client-side, so one
+// role-wide signal keeps every transit officer's views in sync. Admins also
+// hear it for the platform-overview active-shipments count.
+const emitShipmentUpdated = () => {
+    emitTo(roleRoom("transit_officer"), Events.ShipmentUpdated);
+    emitTo(roleRoom("admin"), Events.ShipmentUpdated);
+};
 
 interface AuthRequest extends Request {
     user?: {
@@ -79,6 +89,7 @@ export async function createShipmentHandler(
         if (!parsed.success) return void next(appError(400, "Invalid request body"));
 
         const shipment = await createShipment(parsed.data, userId);
+        emitShipmentUpdated();
         res.status(201).json(shipment);
     } catch (err) {
         next(err);
@@ -103,6 +114,7 @@ export async function advanceShipmentHandler(
         const updated = await advanceShipmentStatus(id, userId);
         if (!updated) return void next(appError(400, "Shipment cannot be advanced from its current status"));
 
+        emitShipmentUpdated();
         res.json(updated);
     } catch (err) {
         next(err);
@@ -127,6 +139,7 @@ export async function deliverShipmentHandler(
         const updated = await deliverShipment(id, userId);
         if (!updated) return void next(appError(400, "Shipment cannot be delivered from its current status"));
 
+        emitShipmentUpdated();
         res.json(updated);
     } catch (err) {
         next(err);
@@ -151,6 +164,7 @@ export async function cancelShipmentHandler(
         const updated = await cancelShipment(id, userId);
         if (!updated) return void next(appError(400, "Only shipments in preparing status can be cancelled"));
 
+        emitShipmentUpdated();
         res.json(updated);
     } catch (err) {
         next(err);
@@ -178,6 +192,7 @@ export async function addFlagHandler(
         if (!parsed.success) return void next(appError(400, "Invalid request body"));
 
         const flag = await addShipmentFlag(shipmentId, parsed.data, userId);
+        emitShipmentUpdated();
         res.status(201).json(flag);
     } catch (err) {
         next(err);

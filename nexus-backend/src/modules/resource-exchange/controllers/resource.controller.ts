@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import { resourceModel } from '../models/resource.model';
 import { updateStocksSchema } from '../schemas/resource.schema';
+import { emitTo } from '../../../realtime/io';
+import { Events, roleRoom } from '../../../realtime/events';
 
 type WorldIdParams = { worldId: string };
 
@@ -41,6 +43,8 @@ export const resourceController = {
         return;
       }
       const data = await resourceModel.updateByWorld(worldId, parsed.data.stocks);
+      // Every resource manager sees all worlds' stock telemetry — notify all.
+      emitTo(roleRoom('resource_manager'), Events.ResourceUpdated, { worldId });
       res.json({ success: true, data });
     } catch (err) {
       next(err);

@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../shared/hooks/useApp';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import Card from '../../../shared/components/Card';
 import EmptyState from '../../../shared/components/EmptyState';
 import Icon from '../../../shared/components/Icon';
@@ -52,13 +54,17 @@ const ShipmentBoardPage: React.FC = () => {
   const [filter, setFilter] = useState('All');
   const [shipments, setShipments] = useState<BoardRow[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(() => {
     getShipments(undefined, WORLD_CODE_TO_ID[mine])
-      .then(data => { if (!cancelled) setShipments(data.map(adaptSummary)); })
-      .catch(() => { if (!cancelled) setShipments([]); });
-    return () => { cancelled = true; };
+      .then(data => setShipments(data.map(adaptSummary)))
+      .catch(() => setShipments([]));
   }, [mine]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Any shipment created/advanced/delivered/cancelled/flagged refreshes the
+  // board; client-side filtering keeps only rows touching this world.
+  useSocketEvent(SOCKET_EVENTS.ShipmentUpdated, load);
 
   const list = shipments.filter(s =>
     (s.origin === mine || s.dest === mine) &&

@@ -14,6 +14,7 @@ export interface ApprovalQueueItem {
 export interface ApprovalResolveResult {
 	id: number;
 	status: "active" | "revoked";
+	username: string;
 }
 
 export type AccessCodeRole = "resource_manager" | "transit_officer" | "commercial_citizen";

@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import Icon from '../../../shared/components/Icon';
 import Button from '../../../shared/components/Button';
 import EmptyState from '../../../shared/components/EmptyState';
@@ -29,13 +31,13 @@ const ListingDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback((silent = false) => {
     if (!id) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     Promise.all([getListingById(Number(id)), getMyListings()])
       .then(([l, mine]) => {
         setListing(l);
-        setSelectedImage(l.images[0]?.imageUrl ?? null);
+        setSelectedImage(prev => prev ?? l.images[0]?.imageUrl ?? null);
         const myUserId = mine[0]?.user.id ?? null;
         setIsOwnListing(myUserId !== null && myUserId === l.user.id);
         setHasAvailableItems(mine.some(i => i.status === 'available'));
@@ -43,6 +45,12 @@ const ListingDetailPage: React.FC = () => {
       .catch(() => setError('Failed to load listing.'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // If this listing gets locked into a pending trade or traded away while being
+  // viewed, the availability panel/CTA updates live.
+  useSocketEvent(SOCKET_EVENTS.ListingUpdated, () => load(true));
 
   if (loading) return <LoadingState />;
   if (error || !listing) return <EmptyState icon="market" text={error ?? 'Listing not found.'} />;

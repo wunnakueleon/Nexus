@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { approvalIdSchema, approvalResolveSchema } from "../schemas/approval.schema";
 import { getApprovalHistory, getPendingApprovals, resolveApprovalById } from "../models/approval.model";
+import { emitTo } from "../../../realtime/io";
+import { Events, roleRoom, userRoom } from "../../../realtime/events";
 
 export const getApprovalQueue = async (
 	_req: Request,
@@ -30,6 +32,13 @@ export const resolveApproval = async (
 			error.status = 404;
 			throw error;
 		}
+
+		// Admins: the queue shrank and (on approve) the directory grew.
+		emitTo(roleRoom("admin"), Events.ApprovalUpdated);
+		if (action === "approve") emitTo(roleRoom("admin"), Events.UserUpdated);
+		// The applicant: their account just flipped status — let their pending
+		// page advance instantly instead of waiting on the 20s status poll.
+		emitTo(userRoom(result.username), Events.AuthStatusChanged, { status: result.status });
 
 		res.json(result);
 	} catch (err) {

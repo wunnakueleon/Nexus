@@ -9,6 +9,8 @@ import { Table, Td } from '../../../shared/components/Table';
 import { useApp } from '../../../shared/hooks/useApp';
 import { fetchAccessCodes, generateAccessCodes, expireAccessCode } from '../apis/code.api';
 import { fetchWorlds } from '../apis/world.api';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import type { AccessCodeRole, AccessCodeRow, AdminWorldSummary } from '../types/admin.types';
 
 const ROLE_OPTS = ['Resource Manager', 'Transit Officer', 'Commercial Citizen'] as const;
@@ -74,8 +76,8 @@ const CodeGenerationPage: React.FC = () => {
     [worlds],
   );
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const [worldList, codeList] = await Promise.all([fetchWorlds(), fetchAccessCodes()]);
@@ -91,6 +93,13 @@ const CodeGenerationPage: React.FC = () => {
   }, [world]);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  // Codes generated/expired by any admin, and world edits (which rename the
+  // world pills), keep the issued-codes table current for everyone.
+  useSocketEvent(
+    [SOCKET_EVENTS.CodeUpdated, SOCKET_EVENTS.WorldUpdated],
+    () => void loadData(true),
+  );
 
   const activeWorlds = useMemo(() => worlds.filter(w => w.status === 'active'), [worlds]);
   const worldOpts = activeWorlds.map(w => ({ value: String(w.id), label: w.name }));

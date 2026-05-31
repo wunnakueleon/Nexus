@@ -16,6 +16,8 @@ import {
   submitWorldRequest,
   updateWorld,
 } from '../apis/world.api';
+import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
+import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import type { AdminWorldSummary, WorldRequestRow } from '../types/admin.types';
 
 const PALETTE = ['#7A8C3A', '#3A8C8C', '#4A6FA5', '#A04030', '#C47A1A', '#5F8A3E'];
@@ -41,8 +43,8 @@ const WorldManagementPage: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('#7A8C3A');
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const [worldList, pendingList, historyList] = await Promise.all([
@@ -63,6 +65,10 @@ const WorldManagementPage: React.FC = () => {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  // Another admin submitting/resolving a world request, or editing a world,
+  // refreshes the active list, pending cards and history together.
+  useSocketEvent(SOCKET_EVENTS.WorldUpdated, () => void loadData(true));
 
   const activeWorlds = useMemo(() => worlds.filter(w => w.status === 'active'), [worlds]);
 
