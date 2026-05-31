@@ -157,7 +157,7 @@ nexus-frontend/
 │   │   │   └── types/
 │   │   │       └── resource-exchange.types.ts
 │   │   │
-│   │   │   # ─── CARGO LOGISTICS (Nang Thiri Htet Hsu — 68130500853) ──
+│   │   │   # ─── CARGO LOGISTICS (Nan Thiri Htet Su — 68130500853) ──
 │   │   │   # Your code goes ONLY in this folder.
 │   │   │
 │   │   ├── cargo-logistics/
@@ -326,7 +326,7 @@ tailwind.config.ts
 |--------|--------|-------|
 | Min Thuta | `src/modules/admin/` | 5 pages |
 | Kyi Phyu Thiri Khaing | `src/modules/resource-exchange/` | 3 pages |
-| Nang Thiri Htet Hsu | `src/modules/cargo-logistics/` | 4 pages |
+| Nan Thiri Htet Su | `src/modules/cargo-logistics/` | 4 pages |
 | Wunna Moe San | `src/modules/commercial-marketplace/` | 6 pages |
 
 ---

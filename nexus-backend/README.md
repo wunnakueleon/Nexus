@@ -117,7 +117,7 @@ nexus-backend/
 │   │   │   └── types/
 │   │   │       └── resource-exchange.types.ts
 │   │   │
-│   │   │   # ─── CARGO LOGISTICS (Nang Thiri Htet Hsu — 68130500853) ──
+│   │   │   # ─── CARGO LOGISTICS (Nan Thiri Htet Su — 68130500853) ──
 │   │   │   # Your code goes ONLY in this folder.
 │   │   │
 │   │   ├── cargo-logistics/
@@ -333,7 +333,7 @@ PATCH  /api/trades/:id/cancel              # Cancel own pending request
 PATCH  /api/trades/:id/fulfill             # Mark trade as fulfilled
 ```
 
-### Cargo Logistics (Nang Thiri Htet Hsu)
+### Cargo Logistics (Nan Thiri Htet Su)
 
 ```
 # Shipments
@@ -414,7 +414,7 @@ src/routers.ts
 |--------|--------|-------------|
 | Min Thuta | `src/modules/admin/` | World, User, AccessCode, WorldRequest |
 | Kyi Phyu Thiri Khaing | `src/modules/resource-exchange/` | Resource, TradeRequest |
-| Nang Thiri Htet Hsu | `src/modules/cargo-logistics/` | Shipment, ShipmentItem, ShipmentTimeline, ShipmentFlag |
+| Nan Thiri Htet Su | `src/modules/cargo-logistics/` | Shipment, ShipmentItem, ShipmentTimeline, ShipmentFlag |
 | Wunna Moe San | `src/modules/commercial-marketplace/` | Listing, ListingImage, TradeOffer |
 
 ---

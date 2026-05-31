@@ -11,7 +11,7 @@ A neutral post-apocalypse coordination platform where four surviving worlds shar
 | Wunna Moe San | 681305008535 | Dev Lead | Commercial Marketplace + Shared (schema, auth, seed, UI) | `feat/commercial-marketplace` |
 | Min Thuta | 68130500839 | Developer | Admin Portal | `feat/admin-portal` |
 | Kyi Phyu Thiri Khaing | 68130500851 | Developer | Resource Exchange | `feat/resource-exchange` |
-| Nang Thiri Htet Hsu | 68130500853 | Developer | Cargo Logistics | `feat/cargo-logistics` |
+| Nan Thiri Htet Su | 68130500853 | Developer | Cargo Logistics | `feat/cargo-logistics` |
 
 ---
 
@@ -75,7 +75,7 @@ See `nexus-frontend/README.md` and `nexus-backend/README.md` for detailed folder
 - Trade Dashboard (incoming/outgoing/active/history)
 - Request Trade (create trade requests with optional comments)
 
-### Module: Cargo Logistics (Nang Thiri Htet Hsu)
+### Module: Cargo Logistics (Nan Thiri Htet Su)
 - Shipment Board (filter by status, view all shipments)
 - Shipment Detail (manifest, timeline, flags)
 - Create Shipment (manual shipment creation)
@@ -135,7 +135,7 @@ main                          # Production-ready code. Never commit directly.
 │   ├── feat/shared           # Dev Lead: schema, auth, seed, shared UI
 │   ├── feat/admin-portal     # Min Thuta
 │   ├── feat/resource-exchange    # Kyi Phyu Thiri Khaing
-│   ├── feat/cargo-logistics      # Nang Thiri Htet Hsu
+│   ├── feat/cargo-logistics      # Nan Thiri Htet Su
 │   └── feat/commercial-marketplace   # Wunna Moe San
 ```
 
@@ -173,7 +173,7 @@ git pull origin develop
 # Create your feature branch FROM develop
 git checkout -b feat/admin-portal        # Min Thuta
 git checkout -b feat/resource-exchange   # Kyi Phyu Thiri Khaing
-git checkout -b feat/cargo-logistics     # Nang Thiri Htet Hsu
+git checkout -b feat/cargo-logistics     # Nan Thiri Htet Su
 git checkout -b feat/commercial-marketplace  # Wunna Moe San
 
 # Push your branch
