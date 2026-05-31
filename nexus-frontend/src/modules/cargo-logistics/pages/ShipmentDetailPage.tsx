@@ -6,6 +6,7 @@ import { SOCKET_EVENTS } from '../../../shared/realtime/events';
 import Button from '../../../shared/components/Button';
 import Card from '../../../shared/components/Card';
 import EmptyState from '../../../shared/components/EmptyState';
+import LoadingState from '../../../shared/components/LoadingState';
 import { Field, Textarea } from '../../../shared/components/Field';
 import Icon from '../../../shared/components/Icon';
 import Modal from '../../../shared/components/Modal';
@@ -75,6 +76,7 @@ const ShipmentDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const mine = operator?.worldId ?? '';
   const [shipment, setShipment] = useState<DetailView | null>(null);
+  const [loading, setLoading] = useState(true);
   const [flagOpen, setFlagOpen] = useState(false);
   const [flagText, setFlagText] = useState('');
 
@@ -82,10 +84,11 @@ const ShipmentDetailPage: React.FC = () => {
   const isApiId = Number.isInteger(numericId) && numericId > 0;
 
   const load = useCallback(() => {
-    if (!isApiId) return;
+    if (!isApiId) { setLoading(false); return; }
     getShipment(numericId)
       .then(data => setShipment(adaptDetail(data)))
-      .catch(() => setShipment(null));
+      .catch(() => setShipment(null))
+      .finally(() => setLoading(false));
   }, [isApiId, numericId]);
 
   useEffect(() => { load(); }, [load]);
@@ -123,6 +126,7 @@ const ShipmentDetailPage: React.FC = () => {
     }
   };
 
+  if (loading) return <LoadingState text="Loading shipment…" />;
   if (!shipment) return <EmptyState icon="cargo" text="Shipment not found." />;
   const dir = dirOf(shipment, mine);
   const outbound = dir === 'OUTBOUND';

@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
 import HomePage from './modules/auth/pages/HomePage';
+import NotFoundPage from './modules/auth/pages/NotFoundPage';
 import Shell from './shared/components/Shell';
 import authRoutes from './modules/auth/routers/auth.router';
 import adminRoutes from './modules/admin/routers/admin.router';
@@ -25,6 +26,8 @@ const mainRouter = createBrowserRouter([
           ...commercialMarketplaceRoutes,
         ],
       },
+      // Catch-all — any unknown path renders the 404 page (outside the Shell).
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]);
