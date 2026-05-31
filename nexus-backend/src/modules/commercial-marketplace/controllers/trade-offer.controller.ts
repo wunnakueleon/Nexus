@@ -140,10 +140,11 @@ export const accept = async (req: Request, res: Response, next: NextFunction) =>
       ListingModel.update(offer.offeredListingId, { status: "traded" }),
     ]);
 
-    // A successful barter auto-generates the delivery shipment in Cargo Logistics.
+    // A successful barter auto-generates both delivery shipments (one per
+    // world) in Cargo Logistics.
     try {
-      const shipment = await createShipmentFromCommercialTrade(offer);
-      if (shipment) {
+      const shipments = await createShipmentFromCommercialTrade(offer);
+      if (shipments.length) {
         emitTo(roleRoom("transit_officer"), Events.ShipmentUpdated);
         emitTo(roleRoom("admin"), Events.ShipmentUpdated);
       }

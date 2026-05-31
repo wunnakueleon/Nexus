@@ -43,6 +43,16 @@ async function main() {
   await prisma.accessCode.deleteMany();
   await prisma.world.deleteMany();
 
+  // Reset SQLite AUTOINCREMENT counters so ids restart at 1. Without this the
+  // counters keep climbing across reseeds and worlds drift off 1-4, breaking the
+  // frontend's hardcoded world-id mapping (GLV:1, NPT:2, MNU:3, WNM:4).
+  try {
+    await prisma.$executeRawUnsafe(`DELETE FROM sqlite_sequence;`);
+  } catch {
+    // sqlite_sequence only exists once an AUTOINCREMENT row has been inserted —
+    // safe to ignore on a brand-new database.
+  }
+
   console.log("✓ Database cleared.\n");
 
   // ─────────────────────────────────────────────
@@ -175,6 +185,62 @@ async function main() {
   console.log("└──────────────┴──────────────────┴────────────────────────┘\n");
 
   // ─────────────────────────────────────────────
+  // GOVERNMENT OPERATORS (demo accounts)
+  // ─────────────────────────────────────────────
+  // One resource manager + one transit officer per world, claiming the matching
+  // sign-up codes above (mirrors how seed-commercial creates the citizens).
+  // ─────────────────────────────────────────────
+
+  console.log("Creating government operators...");
+
+  const managerPassword = await bcrypt.hash("manager123", 10);
+  const officerPassword = await bcrypt.hash("officer123", 10);
+
+  const operators: Array<{
+    codeString: string;
+    name: string;
+    username: string;
+    role: "resource_manager" | "transit_officer";
+    password: string;
+  }> = [
+    // Resource Managers — password: manager123
+    { codeString: "GLV-RSM-7742", name: "A. Voss",      username: "gloresource", role: "resource_manager", password: managerPassword },
+    { codeString: "NPT-RSM-4401", name: "M. Calder",    username: "nanresource", role: "resource_manager", password: managerPassword },
+    { codeString: "MNU-RSM-5567", name: "J. Ferro",     username: "minresource", role: "resource_manager", password: managerPassword },
+    { codeString: "WNM-RSM-3352", name: "D. Sarraf",    username: "wunresource", role: "resource_manager", password: managerPassword },
+    // Transit Officers — password: officer123
+    { codeString: "GLV-TRO-3318", name: "P. Tanaka",    username: "glologistics", role: "transit_officer",  password: officerPassword },
+    { codeString: "NPT-TRO-8823", name: "K. Lindqvist", username: "nanlogistics", role: "transit_officer",  password: officerPassword },
+    { codeString: "MNU-TRO-1194", name: "O. Mbeki",     username: "minlogistics", role: "transit_officer",  password: officerPassword },
+    { codeString: "WNM-TRO-7719", name: "H. Marlow",    username: "wunlogistics", role: "transit_officer",  password: officerPassword },
+  ];
+
+  for (const op of operators) {
+    const code = await prisma.accessCode.findUnique({ where: { codeString: op.codeString } });
+    if (!code) { console.warn(`Code ${op.codeString} not found — skipping ${op.username}.`); continue; }
+
+    const user = await prisma.user.create({
+      data: {
+        name: op.name,
+        username: op.username,
+        passwordHash: op.password,
+        worldId: code.worldId,
+        role: op.role,
+        status: "active",
+        codeId: code.id,
+        approvedAt: new Date(),
+      },
+    });
+
+    await prisma.accessCode.update({
+      where: { id: code.id },
+      data: { status: "used", usedByUserId: user.id, usedAt: new Date() },
+    });
+  }
+
+  console.log("✓ Created 4 resource managers (password: manager123) and 4 transit officers (password: officer123)\n");
+
+  // ─────────────────────────────────────────────
   // RESOURCE STOCKS
   // ─────────────────────────────────────────────
   // 5 resources × 4 worlds = 20 rows.
@@ -234,16 +300,25 @@ async function main() {
   console.log("  NEXUS Seed Complete");
   console.log("═══════════════════════════════════════════════════════════");
   console.log("");
-  console.log("  Worlds:        4  (GloriaVenus, NanPtune, MinUranus, WunnaMars)");
-  console.log("  Admin:         1  (username: admin / password: admin123)");
-  console.log("  Access Codes: 12  (3 per world — available for sign-up)");
-  console.log("  Resources:    20  (5 types × 4 worlds)");
+  console.log("  Worlds:             4  (GloriaVenus, NanPtune, MinUranus, WunnaMars)");
+  console.log("  Admin:              1  (admin / admin123)");
+  console.log("  Resource Managers:  4  (gloresource, nanresource, minresource, wunresource — password: manager123)");
+  console.log("  Transit Officers:   4  (glologistics, nanlogistics, minlogistics, wunlogistics — password: officer123)");
+  console.log("  Access Codes:      12  (RSM/TRO claimed by the demo accounts; CCZ used by seed:commercial)");
+  console.log("  Resources:         20  (5 types × 4 worlds)");
+  console.log("");
+  console.log("  Demo operators by world (resource manager / transit officer):");
+  console.log("    GloriaVenus  → gloresource / glologistics");
+  console.log("    NanPtune     → nanresource / nanlogistics");
+  console.log("    MinUranus    → minresource / minlogistics");
+  console.log("    WunnaMars    → wunresource / wunlogistics");
   console.log("");
   console.log("  Next steps:");
   console.log("    1. Start backend:   npm run dev");
   console.log("    2. Start frontend:  cd ../nexus-frontend && npm run dev");
-  console.log("    3. Sign in as admin: admin / admin123");
-  console.log("    4. Use access codes above to sign up as other roles");
+  console.log("    3. Run:             npm run seed:commercial  (adds citizens + listings)");
+  console.log("    4. Sign in as admin (admin / admin123) or any demo operator above");
+  console.log("    5. Need sign-up codes? Generate them from the admin Code Generation page");
   console.log("");
   console.log("═══════════════════════════════════════════════════════════");
 }

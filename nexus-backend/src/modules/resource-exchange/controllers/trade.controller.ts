@@ -112,18 +112,23 @@ export const tradeController = {
       const data = await tradeModel.accept(id, { ...parsed.data, respondedByUserId });
       emitTradeUpdated();
 
-      // A successful trade auto-generates the delivery shipment in Cargo Logistics.
+      // A successful trade auto-generates both delivery shipments (one per
+      // world) in Cargo Logistics.
       try {
-        await createShipmentFromResourceTrade({
+        const shipments = await createShipmentFromResourceTrade({
           id: data.id,
           fromWorldId: data.fromWorldId,
           toWorldId: data.toWorldId,
           resourceWanted: data.resourceWanted,
           quantityWanted: data.quantityWanted,
+          resourceOffered: data.resourceOffered,
+          quantityOffered: data.quantityOffered,
           respondedByUserId,
         });
-        emitTo(roleRoom('transit_officer'), Events.ShipmentUpdated);
-        emitTo(roleRoom('admin'), Events.ShipmentUpdated);
+        if (shipments.length) {
+          emitTo(roleRoom('transit_officer'), Events.ShipmentUpdated);
+          emitTo(roleRoom('admin'), Events.ShipmentUpdated);
+        }
       } catch (shipErr) {
         // Don't fail the accepted trade if shipment creation hiccups.
         console.error('Failed to auto-create shipment for trade', data.id, shipErr);

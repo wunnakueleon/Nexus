@@ -46,10 +46,10 @@ async function main() {
   const citizenPassword = await bcrypt.hash("citizen123", 10);
 
   const citizens = [
-    { codeString: "GLV-CCZ-9901", name: "R. Halden",  username: "halden"  },
-    { codeString: "NPT-CCZ-2067", name: "S. Okonkwo", username: "okonkwo" },
-    { codeString: "MNU-CCZ-6638", name: "V. Reyes",   username: "reyes"   },
-    { codeString: "WNM-CCZ-4483", name: "T. Brak",    username: "brak"    },
+    { codeString: "GLV-CCZ-9901", name: "R. Halden",  username: "glocommercial" },
+    { codeString: "NPT-CCZ-2067", name: "S. Okonkwo", username: "nancommercial" },
+    { codeString: "MNU-CCZ-6638", name: "V. Reyes",   username: "mincommercial" },
+    { codeString: "WNM-CCZ-4483", name: "T. Brak",    username: "wuncommercial" },
   ];
 
   const createdCitizens: { id: number }[] = [];
@@ -109,7 +109,7 @@ async function main() {
 
   console.log(`✓ Created ${listings.length} marketplace listings\n`);
   console.log("  Citizens (all password: citizen123):");
-  console.log("    halden / okonkwo / reyes / brak");
+  console.log("    glocommercial / nancommercial / mincommercial / wuncommercial");
   console.log("\n═══════════════════════════════════════════════");
   console.log("  Commercial Marketplace Seed Complete");
   console.log("═══════════════════════════════════════════════\n");

@@ -97,47 +97,67 @@ export async function createShipment(
     }) as Promise<ShipmentDetail>;
 }
 
-// Auto-generate a shipment when a resource trade is accepted. The accepting
-// world (toWorld) ships the requested resource to the requesting world.
+// Auto-generate the two shipments of an accepted resource trade — one for each
+// world's outbound goods. Only one shipment can carry the tradeRequestId FK
+// (it is unique), so the requested-goods leg holds the link and the
+// offered-goods return leg is created unlinked.
 export async function createShipmentFromResourceTrade(trade: {
     id: number;
     fromWorldId: number;
     toWorldId: number;
     resourceWanted: string;
     quantityWanted: number;
+    resourceOffered: string;
+    quantityOffered: number;
     respondedByUserId: number | null;
-}): Promise<ShipmentDetail> {
-    return createShipment(
+}): Promise<ShipmentDetail[]> {
+    const createdBy = trade.respondedByUserId ?? 1;
+    const delivery = await createShipment(
         {
+            // Accepting world delivers the requested resource to the requester.
             originWorldId: trade.toWorldId,
             destinationWorldId: trade.fromWorldId,
             sourceType: ShipmentSourceType.resource_trade,
             tradeRequestId: trade.id,
             items: [{ resourceType: trade.resourceWanted, quantity: trade.quantityWanted }],
         },
-        trade.respondedByUserId ?? 1,
+        createdBy,
     );
+    const counter = await createShipment(
+        {
+            // Requester ships the resource it offered in return.
+            originWorldId: trade.fromWorldId,
+            destinationWorldId: trade.toWorldId,
+            sourceType: ShipmentSourceType.resource_trade,
+            items: [{ resourceType: trade.resourceOffered, quantity: trade.quantityOffered }],
+        },
+        createdBy,
+    );
+    return [delivery, counter];
 }
 
-// Auto-generate a shipment when a marketplace offer is accepted. The seller's
-// world ships the acquired item to the buyer's world.
+// Auto-generate the two shipments of an accepted marketplace barter — the
+// seller ships the listed item to the buyer, and the buyer ships the offered
+// item back. Only the seller→buyer leg carries the unique tradeOfferId FK.
 export async function createShipmentFromCommercialTrade(offer: {
     id: number;
     sellerUserId: number;
+    buyerUserId: number;
     seller: { world: { id: number } | null };
     buyer: { world: { id: number } | null };
     listing: { title: string; condition: string };
-    offeredListing: { title: string };
-}): Promise<ShipmentDetail | null> {
-    const originWorldId = offer.seller.world?.id;
-    const destinationWorldId = offer.buyer.world?.id;
-    // Both parties must belong to a world to route a shipment.
-    if (!originWorldId || !destinationWorldId) return null;
+    offeredListing: { title: string; condition: string };
+}): Promise<ShipmentDetail[]> {
+    const sellerWorldId = offer.seller.world?.id;
+    const buyerWorldId = offer.buyer.world?.id;
+    // Both parties must belong to a world to route shipments.
+    if (!sellerWorldId || !buyerWorldId) return [];
 
-    return createShipment(
+    const delivery = await createShipment(
         {
-            originWorldId,
-            destinationWorldId,
+            // Seller's listed item travels to the buyer.
+            originWorldId: sellerWorldId,
+            destinationWorldId: buyerWorldId,
             sourceType: ShipmentSourceType.commercial_trade,
             tradeOfferId: offer.id,
             items: [
@@ -150,6 +170,23 @@ export async function createShipmentFromCommercialTrade(offer: {
         },
         offer.sellerUserId,
     );
+    const counter = await createShipment(
+        {
+            // Buyer's offered item travels back to the seller.
+            originWorldId: buyerWorldId,
+            destinationWorldId: sellerWorldId,
+            sourceType: ShipmentSourceType.commercial_trade,
+            items: [
+                {
+                    resourceType: offer.offeredListing.title,
+                    quantity: 1,
+                    conditionNotes: `${offer.offeredListing.condition} · bartered for "${offer.listing.title}"`,
+                },
+            ],
+        },
+        offer.buyerUserId,
+    );
+    return [delivery, counter];
 }
 
 export async function advanceShipmentStatus(
