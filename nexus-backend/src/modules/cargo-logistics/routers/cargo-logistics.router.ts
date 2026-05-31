@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { authenticate } from "../../../middlewares/auth";
+import { roleGuard } from "../../../middlewares/role_guard";
 import {
     addFlagHandler,
     advanceShipmentHandler,
@@ -11,6 +13,9 @@ import {
 } from "../controllers/shipment.controller";
 
 const cargoLogisticsRouter = Router();
+
+// Cargo logistics is operated by Transit Officers; all routes require auth.
+cargoLogisticsRouter.use(authenticate, roleGuard(["transit_officer"]));
 
 // Must be registered before /shipments/:id to prevent "routes" matching as :id
 cargoLogisticsRouter.get("/shipments/routes/overview", getRouteOverviewHandler);

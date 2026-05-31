@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { authenticate } from "../../../middlewares/auth";
+import { roleGuard } from "../../../middlewares/role_guard";
 import { getApprovalHistoryList, getApprovalQueue, resolveApproval } from "../controllers/approval.controller";
 import { getAccessCodes, generateCodes, expireCode } from "../controllers/code.controller";
 import { getOverview } from "../controllers/overview.controller";
@@ -13,6 +15,9 @@ import {
 } from "../controllers/world.controller";
 
 const adminRouter = Router();
+
+// Every admin endpoint requires a valid token AND the admin role.
+adminRouter.use(authenticate, roleGuard(["admin"]));
 
 adminRouter.get("/overview", getOverview);
 adminRouter.get("/approvals", getApprovalQueue);

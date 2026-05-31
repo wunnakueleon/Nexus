@@ -1,5 +1,5 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react';
-import { setAuthUsername } from '../../api';
+import { setAuthToken } from '../../api';
 import type {
   AppContextValue, World, WorldInfo, WorldRequest, WorldHistoryEntry,
   ResourceStock, Trade, NewTrade, Shipment, ManifestItem,
@@ -164,10 +164,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setOperator = useCallback((op: OperatorState | null) => setOperatorState(op), []);
 
-  // Keep the API identity header in sync with whoever is signed in, so backend
-  // requests resolve to the real user (ownership, my-listings, trade offers).
+  // When the operator signs out (operator cleared), drop the API token so no
+  // stale credential lingers. The token itself is set on the api module at
+  // sign-in / sign-up, where the server hands it to us.
   useEffect(() => {
-    setAuthUsername(operator?.username ?? null);
+    if (!operator) setAuthToken(null);
   }, [operator]);
 
   // ---- Admin actions -------------------------------------------------------

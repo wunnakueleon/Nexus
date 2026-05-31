@@ -19,4 +19,6 @@ export interface AuthResponse {
 	name: string;
 	worldId: number | null;
 	worldName: string | null;
+	// Issued on sign-in / sign-up; absent on the status-poll response.
+	token?: string;
 }

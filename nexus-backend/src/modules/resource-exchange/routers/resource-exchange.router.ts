@@ -1,8 +1,13 @@
 import { Router } from 'express';
+import { authenticate } from '../../../middlewares/auth';
+import { roleGuard } from '../../../middlewares/role_guard';
 import { resourceController } from '../controllers/resource.controller';
 import { tradeController } from '../controllers/trade.controller';
 
 const resourceExchangeRouter = Router();
+
+// Resource exchange is operated by Resource Managers; all routes require auth.
+resourceExchangeRouter.use(authenticate, roleGuard(['resource_manager']));
 
 // Resources
 resourceExchangeRouter.get('/resources',          resourceController.getAll);

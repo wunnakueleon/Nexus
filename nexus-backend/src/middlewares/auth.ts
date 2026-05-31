@@ -1,33 +1,38 @@
 import type { Request, Response, NextFunction } from "express";
-import { prisma } from "../db";
+import { verifyToken } from "../utils/jwt";
 
-// Interim auth: there is no JWT layer yet, so the frontend sends the signed-in
-// operator's username in the `x-username` header and we resolve the real user
-// from the database. This makes req.user reflect *who is actually logged in*
-// (ownership checks, "my listings", trade offers, etc.) instead of a fixed stub.
-//
-// SECURITY: the header is unauthenticated and trivially spoofable — replace this
-// with proper JWT verification before any real deployment.
-export const authenticate = async (req: Request, _res: Response, next: NextFunction) => {
+// The authenticated identity attached to every guarded request.
+export interface AuthedUser {
+  id: number;
+  role: string;
+  worldId: number | null;
+  username: string;
+}
+
+// Verifies the `Authorization: Bearer <jwt>` header. On success, attaches the
+// decoded identity to req.user; otherwise rejects with 401. There is no longer
+// any spoofable header or dev fallback — a valid token is required.
+export const authenticate = (req: Request, _res: Response, next: NextFunction) => {
+  const header = req.header("authorization");
+
+  if (!header?.startsWith("Bearer ")) {
+    const error = new Error("Authentication required") as Error & { status?: number };
+    error.status = 401;
+    return next(error);
+  }
+
   try {
-    const username = req.header("x-username")?.trim();
-
-    if (username) {
-      const user = await prisma.user.findUnique({ where: { username } });
-      if (user) {
-        (req as Request & { user: unknown }).user = {
-          id: user.id,
-          role: user.role,
-          worldId: user.worldId,
-        };
-        return next();
-      }
-    }
-
-    // Fallback dev stub — keeps endpoints working when no/invalid header is sent.
-    (req as Request & { user: unknown }).user = { id: 1, role: "commercial_citizen", worldId: 1 };
+    const payload = verifyToken(header.slice("Bearer ".length).trim());
+    (req as Request & { user: AuthedUser }).user = {
+      id: payload.id,
+      role: payload.role,
+      worldId: payload.worldId,
+      username: payload.username,
+    };
     next();
-  } catch (err) {
-    next(err);
+  } catch {
+    const error = new Error("Invalid or expired token") as Error & { status?: number };
+    error.status = 401;
+    next(error);
   }
 };

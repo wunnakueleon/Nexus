@@ -5,17 +5,31 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Interim identity: the backend has no JWT yet, so we tell it which operator is
-// signed in via a header. Kept in a module-level variable (updated from the app
-// context) and attached to every request below.
-let currentUsername: string | null = null;
-export const setAuthUsername = (username: string | null) => {
-  currentUsername = username;
+// The signed-in operator's JWT. Set on sign-in/sign-up, cleared on sign-out or
+// when the server rejects it (401). Attached as a Bearer header on every request.
+let authToken: string | null = null;
+export const setAuthToken = (token: string | null) => {
+  authToken = token;
 };
 
 api.interceptors.request.use(config => {
-  if (currentUsername) config.headers["x-username"] = currentUsername;
+  if (authToken) config.headers.Authorization = `Bearer ${authToken}`;
   return config;
 });
+
+// If the server rejects our token (expired/invalid) while we believed we were
+// signed in, drop the dead token and bounce back to the landing page to
+// re-authenticate. We only react when a token was actually attached, so a 401
+// from a failed sign-in attempt still surfaces to the form as an error.
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error?.response?.status === 401 && authToken) {
+      authToken = null;
+      if (window.location.pathname !== "/") window.location.assign("/");
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default api;

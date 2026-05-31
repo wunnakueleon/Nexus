@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../../shared/components/Button';
 import { Field, Input } from '../../../shared/components/Field';
 import { useApp } from '../../../shared/hooks/useApp';
+import { setAuthToken } from '../../../api';
 import { signIn } from '../apis/auth.api';
 import { signInSchema } from '../schemas/auth.schema';
 import type { AuthResponse, SignInPayload } from '../types/auth.types';
@@ -42,6 +43,7 @@ const SignInForm = () => {
     // socket can connect and the pending page can receive an instant approval.
     const roleLabel = ROLE_LABELS[response.role];
     const worldId = response.worldName ? WORLD_NAME_TO_ID[response.worldName] ?? null : null;
+    setAuthToken(response.token ?? null);
     setOperator({ role: roleLabel, worldId, name: response.name, username, status: response.status });
 
     if (response.status === 'pending') return navigate('/pending-approval');

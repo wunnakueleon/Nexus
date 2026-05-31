@@ -1,6 +1,11 @@
-import bcrypt from "bcrypt";
 import { prisma } from "../../../db";
+import { hashPassword, comparePassword } from "../../../utils/password";
+import { signToken } from "../../../utils/jwt";
 import type { AuthResponse, SignInInput, SignUpInput } from "../types/auth.types";
+
+// Mint a JWT carrying the identity + scope the API needs on every request.
+const issueToken = (user: { id: number; role: string; worldId: number | null; username: string }): string =>
+	signToken({ id: user.id, role: user.role, worldId: user.worldId, username: user.username });
 
 const toAuthResponse = (user: {
 	name: string;
@@ -47,7 +52,7 @@ export const signUpWithCode = async (input: SignUpInput): Promise<AuthResponse> 
 		throw error;
 	}
 
-	const passwordHash = await bcrypt.hash(input.password, 10);
+	const passwordHash = await hashPassword(input.password);
 
 	const user = await prisma.user.create({
 		data: {
@@ -67,7 +72,7 @@ export const signUpWithCode = async (input: SignUpInput): Promise<AuthResponse> 
 		data: { status: "used", usedByUserId: user.id, usedAt: new Date() },
 	});
 
-	return toAuthResponse(user);
+	return { ...toAuthResponse(user), token: issueToken(user) };
 };
 
 export const signInWithCredentials = async (input: SignInInput): Promise<AuthResponse> => {
@@ -82,14 +87,14 @@ export const signInWithCredentials = async (input: SignInInput): Promise<AuthRes
 		throw error;
 	}
 
-	const matches = await bcrypt.compare(input.password, user.passwordHash);
+	const matches = await comparePassword(input.password, user.passwordHash);
 	if (!matches) {
 		const error = new Error("Invalid credentials") as Error & { status?: number };
 		error.status = 401;
 		throw error;
 	}
 
-	return toAuthResponse(user);
+	return { ...toAuthResponse(user), token: issueToken(user) };
 };
 
 export const getAuthStatusByUsername = async (username: string): Promise<AuthResponse | null> => {
